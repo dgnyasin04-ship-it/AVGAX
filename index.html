@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVGAX AI | Turbo v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .chat-container { height: calc(100vh - 180px); }
+        .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 15px 15px 2px 15px; border: 1px solid #334155; }
+        .ai-msg { background: #3b82f6; color: white; border-radius: 15px 15px 15px 2px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <header class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center px-6">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-400 rounded-lg flex items-center justify-center text-white font-bold shadow-lg">A</div>
+            <div>
+                <h1 class="font-bold text-slate-100 tracking-tight">AVGAX AI</h1>
+                <span class="text-[10px] text-cyan-400 font-bold uppercase">Llama 3.1 Turbo • @dgnemre_04</span>
+            </div>
+        </div>
+        <button onclick="clearChat()" class="text-slate-500 hover:text-white transition-all"><i class="fa-solid fa-rotate-right"></i></button>
+    </header>
+
+    <main id="chat-box" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 chat-container"></main>
+
+    <footer class="p-4 bg-slate-900 border-t border-slate-800">
+        <div class="max-w-4xl mx-auto relative">
+            <div id="status-msg" class="hidden text-xs text-cyan-400 mb-2 animate-pulse font-mono">>> ANALİZ_EDİLİYOR...</div>
+            <div class="flex items-center gap-2 bg-slate-800 rounded-xl p-2 border border-slate-700 focus-within:border-blue-500 transition-all">
+                <input id="user-input" type="text" placeholder="Mesajınızı yazın..." class="flex-1 bg-transparent border-none outline-none px-3 py-2 text-slate-200">
+                <button onclick="sendMessage()" class="bg-blue-600 text-white w-10 h-10 rounded-lg flex items-center justify-center hover:bg-blue-500 active:scale-95 transition-all">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const statusMsg = document.getElementById('status-msg');
+
+        // --- GÜNCEL AYARLAR ---
+        const API_KEY = "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"; 
+        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+        // En güncel ve hızlı model ismi:
+        const MODEL_NAME = "llama-3.1-8b-instant"; 
+        // -----------------------
+
+        let chatHistory = [
+            { role: "system", content: "Senin adın AVGAX. Sahibin ve yapımcın @dgnemre_04. Çok hızlı ve profesyonel bir asistansın." }
+        ];
+
+        function appendMessage(role, text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-in fade-in slide-in-from-bottom-2`;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `max-w-[85%] p-4 ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            msgDiv.innerText = text;
+            wrapper.appendChild(msgDiv);
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        appendMessage('ai', "AVGAX Turbo v2.0 başlatıldı. Llama 3.1 altyapısı aktif. @dgnemre_04, komutlarını bekliyorum.");
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            appendMessage('user', text);
+            userInput.value = '';
+            statusMsg.classList.remove('hidden');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: MODEL_NAME,
+                        messages: [...chatHistory, { role: "user", content: text }],
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+
+                const aiResponse = data.choices[0].message.content;
+                statusMsg.classList.add('hidden');
+                appendMessage('ai', aiResponse);
+
+                chatHistory.push({ role: "user", content: text });
+                chatHistory.push({ role: "assistant", content: aiResponse });
+
+            } catch (error) {
+                statusMsg.classList.add('hidden');
+                appendMessage('ai', "Hata oluştu: " + error.message);
+            }
+        }
+
+        function clearChat() {
+            chatBox.innerHTML = '';
+            chatHistory = chatHistory.slice(0, 1);
+            appendMessage('ai', "Hafıza sıfırlandı.");
+        }
+
+        userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+    </script>
+</body>
+</html>
