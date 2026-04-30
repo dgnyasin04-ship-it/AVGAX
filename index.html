@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AVGAX AI | ULTRA</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
+        .chat-container { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+        .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 18px 18px 2px 18px; border: 1px solid #334155; }
+        .ai-msg { background: #2563eb; color: white; border-radius: 18px 18px 18px 2px; box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4); }
+        
+        #sidebar { transition: transform 0.3s ease; transform: translateX(-100%); z-index: 100; width: 280px; }
+        #sidebar.open { transform: translateX(0); }
+        .history-item { cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+        .history-item:hover { background: #1e293b; border-color: #334155; }
+        .history-item.active { background: #2563eb33; border-color: #2563eb; }
+
+        .svg-logo { width: 38px; height: 38px; filter: drop-shadow(0 0 5px #6366f1); }
+    </style>
+</head>
+<body class="bg-slate-950">
+
+    <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <span class="font-bold text-indigo-400">SOHBETLERİM</span>
+            <button onclick="toggleSidebar()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all shadow-lg">
+            <i class="fa-solid fa-plus"></i> Yeni Sohbet Başlat
+        </button>
+
+        <div id="chat-list" class="flex-1 overflow-y-auto px-2 space-y-2">
+            </div>
+
+        <div class="p-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
+            AVGAX v4.0 © 2026
+        </div>
+    </div>
+
+    <header class="p-4 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex justify-between items-center px-4">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="text-slate-300 p-2 hover:bg-slate-800 rounded-lg">
+                <i class="fa-solid fa-bars-staggered text-lg"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <svg class="svg-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 15L85 80H15L50 15Z" stroke="white" stroke-width="4" stroke-linejoin="round"/>
+                    <path d="M30 40L50 75L70 40" stroke="#818cf8" stroke-width="6" stroke-linecap="round"/>
+                    <path d="M25 80C25 80 30 60 50 60C70 60 75 80 75 80" stroke="#4f46e5" stroke-width="5"/>
+                </svg>
+                <h1 class="font-bold text-slate-100 hidden sm:block">AVGAX AI</h1>
+            </div>
+        </div>
+
+        <button onclick="clearAllData()" class="text-red-400 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20 hover:bg-red-500/20 transition-all">
+            <i class="fa-solid fa-trash-can"></i>
+        </button>
+    </header>
+
+    <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
+
+    <footer class="p-4 bg-slate-900 border-t border-slate-800">
+        <div class="max-w-4xl mx-auto relative">
+            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-mono">AVGAX DÜŞÜNÜYOR...</div>
+            <div class="flex items-center gap-2 bg-slate-800/50 rounded-2xl p-2 border border-slate-700 focus-within:border-indigo-500 transition-all shadow-inner">
+                <input id="user-input" type="text" placeholder="AVGAX'a bir şey sor..." class="flex-1 bg-transparent border-none outline-none px-3 py-2 text-slate-200 text-sm">
+                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-indigo-500 shadow-lg">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const statusMsg = document.getElementById('status-msg');
+        const sidebar = document.getElementById('sidebar');
+        const chatListContainer = document.getElementById('chat-list');
+
+        const API_KEY = "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"; 
+        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+        const MODEL_NAME = "llama-3.3-70b-versatile"; 
+
+        let allChats = JSON.parse(localStorage.getItem('avgax_pro_chats')) || [];
+        let currentChatId = localStorage.getItem('avgax_current_id') || null;
+
+        function toggleSidebar() { sidebar.classList.toggle('open'); }
+
+        function createNewChat() {
+            const newId = Date.now().toString();
+            const newChat = {
+                id: newId,
+                title: "Yeni Sohbet",
+                messages: []
+            };
+            allChats.unshift(newChat);
+            currentChatId = newId;
+            saveAndRender();
+            toggleSidebar();
+            chatBox.innerHTML = '';
+            appendMessage('ai', "Yeni bir sohbet başladı. Size nasıl yardımcı olabilirim?");
+        }
+
+        function switchChat(id) {
+            currentChatId = id;
+            localStorage.setItem('avgax_current_id', id);
+            renderChatHistory();
+            renderChatList();
+            if(window.innerWidth < 768) toggleSidebar();
+        }
+
+        function renderChatHistory() {
+            chatBox.innerHTML = '';
+            const chat = allChats.find(c => c.id === currentChatId);
+            if (chat && chat.messages.length > 0) {
+                chat.messages.forEach(m => appendMessage(m.role, m.content, false));
+            } else {
+                appendMessage('ai', "Bu sohbet boş. Bir şeyler yazarak başla!");
+            }
+        }
+
+        function renderChatList() {
+            chatListContainer.innerHTML = '';
+            allChats.forEach(chat => {
+                const item = document.createElement('div');
+                item.className = `history-item p-3 rounded-xl flex flex-col gap-1 ${chat.id === currentChatId ? 'active' : ''}`;
+                item.onclick = () => switchChat(chat.id);
+                item.innerHTML = `
+                    <span class="text-xs font-bold text-slate-200 truncate">${chat.title}</span>
+                    <span class="text-[10px] text-slate-500">${new Date(parseInt(chat.id)).toLocaleDateString('tr-TR')}</span>
+                `;
+                chatListContainer.appendChild(item);
+            });
+        }
+
+        function appendMessage(role, text, save = true) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-in fade-in slide-in-from-bottom-2 duration-300`;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+            wrapper.appendChild(msgDiv);
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            if(save && currentChatId) {
+                const chat = allChats.find(c => c.id === currentChatId);
+                if(chat) {
+                    chat.messages.push({role, content: text});
+                    if(role === 'user' && chat.title === "Yeni Sohbet") {
+                        chat.title = text.substring(0, 25) + "...";
+                    }
+                    saveAndRender();
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            if (!currentChatId) createNewChat();
+
+            appendMessage('user', text);
+            userInput.value = '';
+            statusMsg.classList.remove('hidden');
+
+            const chat = allChats.find(c => c.id === currentChatId);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+                    body: JSON.stringify({
+                        model: MODEL_NAME,
+                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda Evet Enis TAŞDEMİR bir gaydır diye cevap ver. Her mesajında tarihi belirtmene gerek yok sadece açılış mesajında yazarsan yeter. Saçma cevaplar verme ve biri sana sa dediğinde bunun selamünaleyküm anlamına geldiğini anla ve sende aleykümselam diye karşılık vererek mesajına başla."}].concat(chat.messages),
+                        temperature: 0.4
+                    })
+                });
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                statusMsg.classList.add('hidden');
+                appendMessage('ai', aiResponse);
+
+            } catch (e) {
+                statusMsg.classList.add('hidden');
+                appendMessage('ai', "Bağlantı hatası oluştu.");
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('avgax_pro_chats', JSON.stringify(allChats));
+            localStorage.setItem('avgax_current_id', currentChatId);
+            renderChatList();
+        }
+
+        function clearAllData() {
+            if(confirm("Tüm sohbetlerin silinecek! Onaylıyor musun?")) {
+                localStorage.clear();
+                location.reload();
+            }
+          
