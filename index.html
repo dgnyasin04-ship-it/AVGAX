@@ -49,14 +49,14 @@
         .delete-btn { color: #f87171; padding: 8px; border-radius: 8px; transition: all 0.2s; background: rgba(239, 68, 68, 0.1); }
         .delete-btn:hover { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
 
-        .app-logo { width: 45px; height: auto; border-radius: 8px; filter: drop-shadow(0 0 8px #6366f1); }
+        .app-logo { width: 45px; height: 45px; border-radius: 10px; object-fit: cover; filter: drop-shadow(0 0 8px #6366f1); }
     </style>
 </head>
 <body class="bg-slate-950">
 
     <div id="splash-screen">
         <video id="splash-video" autoplay muted playsinline>
-            <source src="AVGAX_ANIMASYON.mp4" type="video/mp4">
+            <source src="1584.webm" type="video/webm">
         </video>
     </div>
 
@@ -83,7 +83,7 @@
                 <i class="fa-solid fa-bars-staggered text-lg"></i>
             </button>
             <div class="flex items-center gap-2">
-                <img src="1577.jpg" class="app-logo">
+                <img src="1577.jpg" alt="AVGAX LOGO" class="app-logo">
                 <h1 class="font-bold text-slate-100">AVGAX AI</h1>
             </div>
         </div>
@@ -122,10 +122,11 @@
 
         video.onended = () => {
             splash.style.transform = 'translateY(-100%)';
-            setTimeout(() => splash.remove(), 800);
+            setTimeout(() => splash.style.display = 'none', 800);
         };
 
-        setTimeout(() => { if(splash) { splash.style.transform = 'translateY(-100%)'; setTimeout(() => splash.remove(), 800); } }, 5000);
+        // Video oynamazsa diye güvenlik önlemi
+        setTimeout(() => { if(splash && splash.style.display !== 'none') { splash.style.transform = 'translateY(-100%)'; setTimeout(() => splash.style.display = 'none', 800); } }, 5000);
 
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
         let currentChatId = localStorage.getItem('avgax_current_id') || null;
@@ -143,13 +144,17 @@
         }
 
         function deleteChat(id, event) {
-            event.stopPropagation();
-            if(confirm("Bu sohbet silinsin mi?")) {
-                allChats = allChats.filter(c => c.id !== id);
-                if (currentChatId === id) currentChatId = allChats.length > 0 ? allChats[0].id : null;
-                saveAndRender();
-                if (currentChatId) renderChatHistory(); else createNewChat();
+            if(event) event.stopPropagation();
+            allChats = allChats.filter(c => c.id !== id);
+            if (currentChatId === id) {
+                if (allChats.length > 0) {
+                    switchChat(allChats[0].id);
+                } else {
+                    currentChatId = null;
+                    createNewChat();
+                }
             }
+            saveAndRender();
         }
 
         function switchChat(id) {
@@ -239,10 +244,15 @@
             renderChatList();
         }
 
+        // Düzeltilen Kısım: Sayfayı yenilemeden temizleme yapar
         function clearAllData() {
-            if(confirm("Tüm veriler temizlensin mi?")) {
-                localStorage.clear();
-                location.reload();
+            if(confirm("Tüm geçmiş silinsin mi?")) {
+                localStorage.removeItem('avgax_chats');
+                localStorage.removeItem('avgax_current_id');
+                allChats = [];
+                currentChatId = null;
+                chatBox.innerHTML = '';
+                createNewChat(); // Sadece arayüzü sıfırlar, splash tetiklemez
             }
         }
 
