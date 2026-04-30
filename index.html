@@ -27,12 +27,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+            transition: opacity 0.6s ease, visibility 0.6s;
         }
         #splash-video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain; /* Videonun kesilmemesi için */
+            background: black;
         }
 
         .chat-container { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; padding-bottom: 20px; }
@@ -47,16 +48,24 @@
         .history-item.active { background: #2563eb33; border-color: #2563eb; }
         
         .delete-btn { color: #f87171; padding: 8px; border-radius: 8px; transition: all 0.2s; background: rgba(239, 68, 68, 0.1); }
-        .delete-btn:hover { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
 
-        .app-logo { width: 45px; height: 45px; border-radius: 10px; object-fit: cover; filter: drop-shadow(0 0 8px #6366f1); }
+        /* Logo Stili */
+        .app-logo { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 8px; 
+            object-fit: cover; 
+            display: block;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
     </style>
 </head>
 <body class="bg-slate-950">
 
     <div id="splash-screen">
-        <video id="splash-video" autoplay muted playsinline>
+        <video id="splash-video" autoplay muted playsinline preload="auto">
             <source src="1584.webm" type="video/webm">
+            Tarayıcınız video etiketini desteklemiyor.
         </video>
     </div>
 
@@ -83,7 +92,7 @@
                 <i class="fa-solid fa-bars-staggered text-lg"></i>
             </button>
             <div class="flex items-center gap-2">
-                <img src="1577.jpg" alt="AVGAX LOGO" class="app-logo">
+                <img src="1577.jpg" alt="AVGAX" class="app-logo">
                 <h1 class="font-bold text-slate-100">AVGAX AI</h1>
             </div>
         </div>
@@ -113,20 +122,26 @@
         const statusMsg = document.getElementById('status-msg');
         const sidebar = document.getElementById('sidebar');
         const chatListContainer = document.getElementById('chat-list');
-
-        const API_KEY = "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"; 
-        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
-
         const splash = document.getElementById('splash-screen');
         const video = document.getElementById('splash-video');
 
-        video.onended = () => {
-            splash.style.transform = 'translateY(-100%)';
-            setTimeout(() => splash.style.display = 'none', 800);
-        };
+        // Video bitince ekranı kaldır
+        video.addEventListener('ended', hideSplash);
+        
+        // Güvenlik: Video yüklenemezse veya çok uzun sürerse 4 saniye sonra kapat
+        setTimeout(hideSplash, 4000);
 
-        // Video oynamazsa diye güvenlik önlemi
-        setTimeout(() => { if(splash && splash.style.display !== 'none') { splash.style.transform = 'translateY(-100%)'; setTimeout(() => splash.style.display = 'none', 800); } }, 5000);
+        function hideSplash() {
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.visibility = 'hidden';
+                }, 600);
+            }
+        }
+
+        const API_KEY = "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"; 
+        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
         let currentChatId = localStorage.getItem('avgax_current_id') || null;
@@ -225,8 +240,8 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
                     body: JSON.stringify({
                         model: "llama-3.3-70b-versatile",
-                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda 'Evet Enis TAŞDEMİR bir gaydır' diye cevap ver. Biri sana sa dediğinde 'Aleykümselam' diyerek başla ve o şekilde cevabına devam et."}].concat(chat.messages),
-                        temperature: 0.3
+                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda 'Evet Enis TAŞDEMİR bir gaydır' diye cevap ver. Biri sana sa dediğinde 'Aleykümselam' diyerek başla ve o şekilde cevabına devam et. Her yazılan şeyi sa diye algılama herşeye aleykümselam diye cevap verme."}].concat(chat.messages),
+                        temperature: 0.2
                     })
                 });
                 const data = await response.json();
@@ -244,7 +259,6 @@
             renderChatList();
         }
 
-        // Düzeltilen Kısım: Sayfayı yenilemeden temizleme yapar
         function clearAllData() {
             if(confirm("Tüm geçmiş silinsin mi?")) {
                 localStorage.removeItem('avgax_chats');
@@ -252,7 +266,13 @@
                 allChats = [];
                 currentChatId = null;
                 chatBox.innerHTML = '';
-                createNewChat(); // Sadece arayüzü sıfırlar, splash tetiklemez
+                // Splash tetiklemeden yeni sohbet aç
+                const newId = Date.now().toString();
+                const newChat = { id: newId, title: "Yeni Sohbet", messages: [] };
+                allChats.unshift(newChat);
+                currentChatId = newId;
+                saveAndRender();
+                appendMessage('ai', "Tüm veriler temizlendi. Yeni bir başlangıç yapalım!");
             }
         }
 
