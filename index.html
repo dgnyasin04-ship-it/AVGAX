@@ -47,7 +47,6 @@
         .history-item:hover { background: #1e293b; border-color: #334155; }
         .history-item.active { background: #2563eb33; border-color: #2563eb; }
         
-        /* TEKLİ SİLME BUTONU STİLİ */
         .delete-btn { color: #f87171; padding: 8px; border-radius: 8px; transition: all 0.2s; background: rgba(239, 68, 68, 0.1); }
         .delete-btn:hover { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
 
@@ -119,7 +118,6 @@
         const API_KEY = "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"; 
         const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-        // SPLASH SCREEN KODU
         const splash = document.getElementById('splash-screen');
         const video = document.getElementById('splash-video');
 
@@ -128,7 +126,6 @@
             setTimeout(() => splash.remove(), 800);
         };
 
-        // Video bitmezse diye 5 saniye sonra zorla kapat
         setTimeout(() => { if(splash) { splash.style.transform = 'translateY(-100%)'; setTimeout(() => splash.remove(), 800); } }, 5000);
 
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
@@ -146,7 +143,6 @@
             appendMessage('ai', "AVGAX AI hazır. Size nasıl yardımcı olabilirim?");
         }
 
-        // TEKLİ SOHBET SİLME FONKSİYONU
         function deleteChat(id, event) {
             event.stopPropagation();
             if(confirm("Bu sohbet silinsin mi?")) {
