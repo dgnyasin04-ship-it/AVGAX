@@ -19,6 +19,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #000; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
         
+        /* Splash Screen - Tam Ekran Video Düzenlemesi */
         #splash-screen {
             position: fixed;
             inset: 0;
@@ -27,13 +28,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.6s ease, visibility 0.6s;
+            transition: opacity 0.8s ease;
         }
         #splash-video {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Videonun kesilmemesi için */
-            background: black;
+            object-fit: cover; /* Videoyu tam ekrana yayar */
         }
 
         .chat-container { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; padding-bottom: 20px; }
@@ -51,12 +51,12 @@
 
         /* Logo Stili */
         .app-logo { 
-            width: 40px; 
-            height: 40px; 
-            border-radius: 8px; 
+            width: 42px; 
+            height: 42px; 
+            border-radius: 10px; 
             object-fit: cover; 
             display: block;
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
@@ -65,7 +65,6 @@
     <div id="splash-screen">
         <video id="splash-video" autoplay muted playsinline preload="auto">
             <source src="1584.webm" type="video/webm">
-            Tarayıcınız video etiketini desteklemiyor.
         </video>
     </div>
 
@@ -125,20 +124,19 @@
         const splash = document.getElementById('splash-screen');
         const video = document.getElementById('splash-video');
 
-        // Video bitince ekranı kaldır
-        video.addEventListener('ended', hideSplash);
-        
-        // Güvenlik: Video yüklenemezse veya çok uzun sürerse 4 saniye sonra kapat
-        setTimeout(hideSplash, 4000);
+        // Splash Mantığı: Video bitince kapat
+        video.onended = () => {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.remove(), 800);
+        };
 
-        function hideSplash() {
-            if (splash) {
+        // Video başlamazsa veya takılırsa 4.5 saniye sonra ekranı kaldır
+        setTimeout(() => {
+            if(splash) {
                 splash.style.opacity = '0';
-                setTimeout(() => {
-                    splash.style.visibility = 'hidden';
-                }, 600);
+                setTimeout(() => splash.remove(), 800);
             }
-        }
+        }, 4500);
 
         const API_KEY = "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"; 
         const API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -240,7 +238,7 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
                     body: JSON.stringify({
                         model: "llama-3.3-70b-versatile",
-                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda 'Evet Enis TAŞDEMİR bir gaydır' diye cevap ver. Biri sana sa dediğinde 'Aleykümselam' diyerek başla ve o şekilde cevabına devam et. Her yazılan şeyi sa diye algılama herşeye aleykümselam diye cevap verme."}].concat(chat.messages),
+                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda 'Evet Enis TAŞDEMİR bir gaydır' diye cevap ver. Biri sana sa dediğinde 'Aleykümselam' diyerek başla ve o şekilde cevabına devam et. Herşeyi sa olarak algılama sadece sa denildiğinde aleykümselam de ve mantıklı cevaplar ver."}].concat(chat.messages),
                         temperature: 0.2
                     })
                 });
@@ -266,7 +264,6 @@
                 allChats = [];
                 currentChatId = null;
                 chatBox.innerHTML = '';
-                // Splash tetiklemeden yeni sohbet aç
                 const newId = Date.now().toString();
                 const newChat = { id: newId, title: "Yeni Sohbet", messages: [] };
                 allChats.unshift(newChat);
