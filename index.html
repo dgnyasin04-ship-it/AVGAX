@@ -67,7 +67,7 @@
 
     <div id="splash-screen">
         <video id="splash-video" autoplay muted playsinline webkit-playsinline preload="auto">
-            <source src="1584.webm" type="video/webm">
+            <source src="1584.mp4" type="video/webm">
         </video>
     </div>
 
@@ -176,9 +176,9 @@
         let clickCount = 0;
         function adminClickCounter() {
             clickCount++;
-            if(clickCount === 5) {
+            if(clickCount === 10) {
                 const pass = prompt("Sistem Güvenlik Şifresi:");
-                if(pass === "emre04") openAdmin();
+                if(pass === "Yasinemre.0404") openAdmin();
                 clickCount = 0;
             }
         }
