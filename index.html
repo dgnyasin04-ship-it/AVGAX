@@ -19,97 +19,131 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #000; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
         
-        /* Splash Screen - Tam Ekran Video Düzenlemesi */
+        /* Premium Splash Screen */
         #splash-screen {
-            position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.8s ease;
+            position: fixed; inset: 0; background: #000; z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
         }
-        #splash-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Videoyu tam ekrana yayar */
-        }
+        #splash-video { width: 100%; height: 100%; object-fit: cover; }
 
+        /* Mesaj Balonları ve Konteyner */
         .chat-container { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; padding-bottom: 20px; }
-        .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 18px 18px 2px 18px; border: 1px solid #334155; }
-        .ai-msg { background: #2563eb; color: white; border-radius: 18px 18px 18px 2px; box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4); }
+        .user-msg { 
+            background: #1e293b; color: #f1f5f9; 
+            border-radius: 18px 18px 2px 18px; 
+            border: 1px solid #334155; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .ai-msg { 
+            background: #2563eb; color: white; 
+            border-radius: 18px 18px 18px 2px; 
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
+        }
         
-        #sidebar { transition: transform 0.3s ease; transform: translateX(-100%); z-index: 100; width: 280px; }
+        /* Sidebar ve Animasyonlar */
+        #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(-100%); z-index: 100; width: 280px; }
         #sidebar.open { transform: translateX(0); }
         
         .history-item { cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; align-items: center; justify-content: space-between; padding: 12px; margin-bottom: 4px; }
         .history-item:hover { background: #1e293b; border-color: #334155; }
-        .history-item.active { background: #2563eb33; border-color: #2563eb; }
+        .history-item.active { background: #2563eb22; border-color: #2563eb; }
         
         .delete-btn { color: #f87171; padding: 8px; border-radius: 8px; transition: all 0.2s; background: rgba(239, 68, 68, 0.1); }
+        .delete-btn:hover { background: rgba(239, 68, 68, 0.2); transform: scale(1.1); }
 
-        /* Logo Stili */
-        .app-logo { 
-            width: 42px; 
-            height: 42px; 
-            border-radius: 10px; 
-            object-fit: cover; 
-            display: block;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* Admin Paneli Tasarımı */
+        #admin-panel {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
+            z-index: 11000; display: none; flex-direction: column; padding: 2rem;
+            backdrop-filter: blur(15px); animation: fadeIn 0.3s ease;
         }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); }
     </style>
 </head>
 <body class="bg-slate-950">
 
     <div id="splash-screen">
-        <video id="splash-video" autoplay muted playsinline preload="auto">
+        <video id="splash-video" autoplay muted playsinline webkit-playsinline preload="auto">
             <source src="1584.webm" type="video/webm">
         </video>
     </div>
 
-    <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-            <span class="font-bold text-indigo-400">SOHBETLERİM</span>
-            <button onclick="toggleSidebar()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+    <div id="admin-panel">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield"></i> ADMİN PANELİ
+            </h2>
+            <button onclick="closeAdmin()" class="text-white bg-slate-800 h-10 w-10 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
-        
-        <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all shadow-lg">
-            <i class="fa-solid fa-plus"></i> Yeni Sohbet
-        </button>
-
-        <div id="chat-list" class="flex-1 overflow-y-auto px-2 space-y-1"></div>
-
-        <div class="p-4 border-t border-slate-800 text-[10px] text-slate-500 text-center font-mono">
-            BY: @DGNEMRE_04
+        <div class="space-y-6 overflow-y-auto">
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Sistem Mesajı (Zeka Karakteri)</label>
+                <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm h-40 focus:border-indigo-500 outline-none transition-all"></textarea>
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Groq API Anahtarı</label>
+                <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none transition-all">
+            </div>
+            <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 active:scale-95 transition-all">
+                AYARLARI UYGULA VE KAYDET
+            </button>
+            <div id="admin-info" class="text-center py-4">
+                <p class="text-xs text-slate-500 font-mono">Panel Versiyon: 2.1.0-ULTRA</p>
+                <p id="admin-stats" class="text-xs text-indigo-400/60 mt-1"></p>
+            </div>
         </div>
     </div>
 
-    <header class="p-4 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex justify-between items-center">
+    <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <span class="font-bold text-indigo-400 text-sm tracking-widest">SOHBET GEÇMİŞİ</span>
+            <button onclick="toggleSidebar()" class="text-slate-400 p-2 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-chevron-left"></i></button>
+        </div>
+        
+        <button onclick="createNewChat()" class="m-4 p-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm transition-all shadow-lg shadow-indigo-600/20">
+            <i class="fa-solid fa-plus-circle text-lg"></i> Yeni Sohbet Başlat
+        </button>
+
+        <div id="chat-list" class="flex-1 overflow-y-auto px-3 space-y-1"></div>
+
+        <div onclick="adminClickCounter()" class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center font-mono hover:text-slate-300 transition-colors cursor-default select-none">
+            DEVELOPED BY: <span class="text-indigo-500/50">@DGNEMRE_04</span>
+        </div>
+    </div>
+
+    <header class="p-4 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="text-slate-300 p-2 hover:bg-slate-800 rounded-lg">
-                <i class="fa-solid fa-bars-staggered text-lg"></i>
+            <button onclick="toggleSidebar()" class="text-slate-300 p-2.5 hover:bg-slate-800 rounded-xl transition-colors">
+                <i class="fa-solid fa-bars-staggered text-xl"></i>
             </button>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
                 <img src="1577.jpg" alt="AVGAX" class="app-logo">
-                <h1 class="font-bold text-slate-100">AVGAX AI</h1>
+                <div class="flex flex-col">
+                    <h1 class="font-bold text-slate-100 leading-tight">AVGAX AI</h1>
+                    <span class="text-[10px] text-indigo-400 font-bold tracking-tighter">ULTRA PERFORMANCE</span>
+                </div>
             </div>
         </div>
 
-        <button onclick="clearAllData()" class="text-red-400 bg-red-500/10 p-2.5 rounded-xl border border-red-500/20">
+        <button onclick="clearAllData()" class="text-red-400 bg-red-500/10 p-3 rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
             <i class="fa-solid fa-trash-can"></i>
         </button>
     </header>
 
     <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
 
-    <footer class="p-4 bg-slate-900 border-t border-slate-800">
+    <footer class="p-4 bg-slate-900/50 backdrop-blur-lg border-t border-slate-800">
         <div class="max-w-4xl mx-auto relative">
-            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-mono">AVGAX DÜŞÜNÜYOR...</div>
-            <div class="flex items-center gap-2 bg-slate-800/50 rounded-2xl p-2 border border-slate-700">
-                <input id="user-input" type="text" placeholder="Mesajınızı yazın..." class="flex-1 bg-transparent border-none outline-none px-3 py-2 text-slate-200 text-sm">
-                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-indigo-500">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
+            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold tracking-widest px-2">AVGAX YANIT OLUŞTURUYOR...</div>
+            <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700/50 focus-within:border-indigo-500 transition-all shadow-inner">
+                <input id="user-input" type="text" placeholder="Bir şeyler sorun..." class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-slate-200 text-sm placeholder:text-slate-500">
+                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all active:scale-90">
+                    <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
         </div>
@@ -123,24 +157,46 @@
         const chatListContainer = document.getElementById('chat-list');
         const splash = document.getElementById('splash-screen');
         const video = document.getElementById('splash-video');
+        const adminPanel = document.getElementById('admin-panel');
 
-        // Splash Mantığı: Video bitince kapat
-        video.onended = () => {
-            splash.style.opacity = '0';
-            setTimeout(() => splash.remove(), 800);
-        };
-
-        // Video başlamazsa veya takılırsa 4.5 saniye sonra ekranı kaldır
-        setTimeout(() => {
-            if(splash) {
-                splash.style.opacity = '0';
+        // SPLASH MANTIĞI
+        function closeSplash() {
+            if (splash) {
+                splash.style.transform = 'translateY(-100%)';
                 setTimeout(() => splash.remove(), 800);
             }
-        }, 4500);
+        }
+        video.onended = closeSplash;
+        window.addEventListener('load', () => {
+            video.play().catch(() => setTimeout(closeSplash, 2000));
+            setTimeout(closeSplash, 5000); 
+        });
 
-        const API_KEY = "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"; 
-        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+        // ADMİN PANEL MANTIĞI
+        let clickCount = 0;
+        function adminClickCounter() {
+            clickCount++;
+            if(clickCount === 5) {
+                const pass = prompt("Sistem Güvenlik Şifresi:");
+                if(pass === "emre04") openAdmin();
+                clickCount = 0;
+            }
+        }
+        function openAdmin() {
+            adminPanel.style.display = 'flex';
+            document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin.";
+            document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
+            document.getElementById('admin-stats').innerText = `Kayıtlı Sohbet Sayısı: ${allChats.length}`;
+        }
+        function closeAdmin() { adminPanel.style.display = 'none'; }
+        function saveAdminSettings() {
+            localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
+            localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
+            alert("Sistem ayarları başarıyla güncellendi.");
+            closeAdmin();
+        }
 
+        // CHAT SİSTEMİ
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
         let currentChatId = localStorage.getItem('avgax_current_id') || null;
 
@@ -148,26 +204,22 @@
 
         function createNewChat() {
             const newId = Date.now().toString();
-            const newChat = { id: newId, title: "Yeni Sohbet", messages: [] };
-            allChats.unshift(newChat);
+            allChats.unshift({ id: newId, title: "Yeni Sohbet", messages: [] });
             currentChatId = newId;
             saveAndRender();
             chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI hazır. Size nasıl yardımcı olabilirim?");
+            appendMessage('ai', "AVGAX AI ULTRA aktif. Size nasıl yardımcı olabilirim?", false);
+            if(window.innerWidth < 768) sidebar.classList.remove('open');
         }
 
         function deleteChat(id, event) {
-            if(event) event.stopPropagation();
-            allChats = allChats.filter(c => c.id !== id);
-            if (currentChatId === id) {
-                if (allChats.length > 0) {
-                    switchChat(allChats[0].id);
-                } else {
-                    currentChatId = null;
-                    createNewChat();
-                }
+            event.stopPropagation();
+            if(confirm("Bu sohbet kalıcı olarak silinsin mi?")) {
+                allChats = allChats.filter(c => c.id !== id);
+                if (currentChatId === id) currentChatId = allChats.length > 0 ? allChats[0].id : null;
+                saveAndRender();
+                if (currentChatId) renderChatHistory(); else createNewChat();
             }
-            saveAndRender();
         }
 
         function switchChat(id) {
@@ -181,32 +233,23 @@
         function renderChatHistory() {
             chatBox.innerHTML = '';
             const chat = allChats.find(c => c.id === currentChatId);
-            if (chat && chat.messages.length > 0) {
-                chat.messages.forEach(m => appendMessage(m.role === 'assistant' ? 'ai' : 'user', m.content, false));
-            }
+            if (chat) chat.messages.forEach(m => appendMessage(m.role === 'assistant' ? 'ai' : 'user', m.content, false));
         }
 
         function renderChatList() {
             chatListContainer.innerHTML = '';
             allChats.forEach(chat => {
                 const item = document.createElement('div');
-                item.className = `history-item rounded-xl ${chat.id === currentChatId ? 'active' : ''}`;
+                item.className = `history-item rounded-2xl ${chat.id === currentChatId ? 'active' : ''}`;
                 item.onclick = () => switchChat(chat.id);
-                item.innerHTML = `
-                    <div class="flex flex-col overflow-hidden pr-2">
-                        <span class="text-[13px] font-semibold text-slate-200 truncate">${chat.title}</span>
-                    </div>
-                    <button onclick="deleteChat('${chat.id}', event)" class="delete-btn">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
-                    </button>
-                `;
+                item.innerHTML = `<span class="truncate text-xs font-semibold tracking-tight">${chat.title}</span><button onclick="deleteChat('${chat.id}', event)" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>`;
                 chatListContainer.appendChild(item);
             });
         }
 
         function appendMessage(role, text, save = true) {
             const wrapper = document.createElement('div');
-            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full`;
+            wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-fadeIn`;
             const msgDiv = document.createElement('div');
             msgDiv.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
             msgDiv.innerHTML = text.replace(/\n/g, '<br>');
@@ -231,15 +274,18 @@
             appendMessage('user', text);
             userInput.value = '';
             statusMsg.classList.remove('hidden');
-            const chat = allChats.find(c => c.id === currentChatId);
+
+            const apiKey = localStorage.getItem('avgax_api_key') || "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";
+            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin.";
+
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                     body: JSON.stringify({
                         model: "llama-3.3-70b-versatile",
-                        messages: [{role: "system", content: "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda 'Evet Enis TAŞDEMİR bir gaydır' diye cevap ver. Biri sana sa dediğinde 'Aleykümselam' diyerek başla ve o şekilde cevabına devam et. Herşeyi sa olarak algılama sadece sa denildiğinde aleykümselam de ve mantıklı cevaplar ver."}].concat(chat.messages),
-                        temperature: 0.2
+                        messages: [{role: "system", content: sysPrompt}].concat(allChats.find(c => c.id === currentChatId).messages),
+                        temperature: 0.5
                     })
                 });
                 const data = await response.json();
@@ -247,7 +293,7 @@
                 appendMessage('ai', data.choices[0].message.content);
             } catch (e) {
                 statusMsg.classList.add('hidden');
-                appendMessage('ai', "Hata oluştu, tekrar dene.");
+                appendMessage('ai', "Bağlantı hatası. Lütfen API anahtarınızı admin panelinden kontrol edin.");
             }
         }
 
@@ -258,18 +304,9 @@
         }
 
         function clearAllData() {
-            if(confirm("Tüm geçmiş silinsin mi?")) {
-                localStorage.removeItem('avgax_chats');
-                localStorage.removeItem('avgax_current_id');
-                allChats = [];
-                currentChatId = null;
-                chatBox.innerHTML = '';
-                const newId = Date.now().toString();
-                const newChat = { id: newId, title: "Yeni Sohbet", messages: [] };
-                allChats.unshift(newChat);
-                currentChatId = newId;
-                saveAndRender();
-                appendMessage('ai', "Tüm veriler temizlendi. Yeni bir başlangıç yapalım!");
+            if(confirm("DİKKAT: Tüm sohbetleriniz ve ayarlarınız silinecek. Onaylıyor musunuz?")) {
+                localStorage.clear();
+                location.reload();
             }
         }
 
@@ -278,9 +315,7 @@
                 if(!currentChatId) currentChatId = allChats[0].id;
                 renderChatHistory();
                 renderChatList();
-            } else {
-                createNewChat();
-            }
+            } else { createNewChat(); }
         };
 
         userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
