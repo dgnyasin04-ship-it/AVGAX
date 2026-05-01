@@ -15,18 +15,15 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #000; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
         
-        /* Premium Splash Screen */
-        #splash-screen {
-            position: fixed; inset: 0; background: #000; z-index: 10000;
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
-        }
-        #splash-video { width: 100%; height: 100%; object-fit: cover; }
-
         /* Mesaj Balonları ve Konteyner */
         .chat-container { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #334155 transparent; padding-bottom: 20px; }
         .user-msg { 
@@ -40,35 +37,69 @@
             border-radius: 18px 18px 18px 2px; 
             box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
         }
+
+        /* Markdown Özel Stilleri */
+        .ai-msg p { margin-bottom: 0.5rem; }
+        .ai-msg p:last-child { margin-bottom: 0; }
+        .ai-msg pre { background: #0f172a; padding: 1rem; border-radius: 8px; margin: 0.5rem 0; overflow-x: auto; border: 1px solid #1e293b; }
+        .ai-msg code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.85em; }
+        .ai-msg :not(pre) > code { background: #1e293b; padding: 0.2rem 0.4rem; border-radius: 4px; color: #93c5fd; }
+        .ai-msg ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.5rem; }
+        .ai-msg ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.5rem; }
+        .ai-msg strong { font-weight: bold; color: #fff; }
         
-        /* Sidebar ve Animasyonlar */
+        /* Sidebar ve Modallar */
         #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(-100%); z-index: 100; width: 280px; }
         #sidebar.open { transform: translateX(0); }
         
-        .history-item { cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; align-items: center; justify-content: space-between; padding: 12px; margin-bottom: 4px; }
-        .history-item:hover { background: #1e293b; border-color: #334155; }
-        .history-item.active { background: #2563eb22; border-color: #2563eb; }
-        
-        .delete-btn { color: #f87171; padding: 8px; border-radius: 8px; transition: all 0.2s; background: rgba(239, 68, 68, 0.1); }
-        .delete-btn:hover { background: rgba(239, 68, 68, 0.2); transform: scale(1.1); }
-
-        /* Admin Paneli Tasarımı */
-        #admin-panel {
+        #admin-panel, #user-settings-modal {
             position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
             z-index: 11000; display: none; flex-direction: column; padding: 2rem;
             backdrop-filter: blur(15px); animation: fadeIn 0.3s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); }
+        
+        /* Özel Kaydırıcı (Slider) Tasarımı */
+        input[type=range] { -webkit-appearance: none; background: #1e293b; height: 8px; border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #4f46e5; cursor: pointer; }
     </style>
 </head>
 <body class="bg-slate-950">
 
-    <div id="splash-screen">
-        <video id="splash-video" autoplay muted playsinline webkit-playsinline preload="auto">
-            <source src="1584.mp4" type="video/webm">
-        </video>
+    <div id="user-settings-modal">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-indigo-400 flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> AYARLAR
+            </h2>
+            <button onclick="toggleUserSettings()" class="text-white bg-slate-800 h-10 w-10 rounded-full flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="space-y-8 overflow-y-auto max-w-2xl mx-auto w-full">
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                <label class="block text-sm font-bold text-slate-300 mb-4 uppercase">Ses Seçimi (Okuma İçin)</label>
+                <select id="voice-selection" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none text-slate-200"></select>
+                <p class="text-[10px] text-slate-500 mt-2">* Cihazınızda yüklü olan sesler listelenir.</p>
+            </div>
+            
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="text-sm font-bold text-slate-300 uppercase">Yaratıcılık Dengesi (Temperature)</label>
+                    <span id="temp-value" class="text-indigo-400 font-mono font-bold">0.5</span>
+                </div>
+                <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.5" class="w-full" oninput="updateTempDisplay(this.value)">
+                <div class="flex justify-between text-[10px] text-slate-500 mt-2">
+                    <span>Daha Odaklı / Ciddi</span>
+                    <span>Daha Yaratıcı / Serbest</span>
+                </div>
+            </div>
+
+            <button onclick="saveUserSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 active:scale-95 transition-all">
+                AYARLARI KAYDET
+            </button>
+        </div>
     </div>
 
     <div id="admin-panel">
@@ -86,16 +117,25 @@
                 <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm h-40 focus:border-indigo-500 outline-none transition-all"></textarea>
             </div>
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Yapay Zeka Modeli</label>
+                <select id="admin-model" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none text-slate-200">
+                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Önerilen)</option>
+                    <option value="llama3-8b-8192">Llama 3 8B (Hızlı)</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B (Gelişmiş)</option>
+                    <option value="gemma2-9b-it">Gemma 2 9B (Google)</option>
+                </select>
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
                 <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Groq API Anahtarı</label>
-                <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none transition-all">
+                <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none">
+            </div>
+            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <label class="block text-xs font-bold text-slate-400 mb-2 uppercase">Yönetici Şifresini Değiştir</label>
+                <input id="admin-new-pass" type="password" placeholder="Yeni şifre belirle" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 text-sm">
             </div>
             <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 active:scale-95 transition-all">
-                AYARLARI UYGULA VE KAYDET
+                ADMİN AYARLARINI KAYDET
             </button>
-            <div id="admin-info" class="text-center py-4">
-                <p class="text-xs text-slate-500 font-mono">Panel Versiyon: 2.1.0-ULTRA</p>
-                <p id="admin-stats" class="text-xs text-indigo-400/60 mt-1"></p>
-            </div>
         </div>
     </div>
 
@@ -104,21 +144,18 @@
             <span class="font-bold text-indigo-400 text-sm tracking-widest">SOHBET GEÇMİŞİ</span>
             <button onclick="toggleSidebar()" class="text-slate-400 p-2 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-chevron-left"></i></button>
         </div>
-        
-        <button onclick="createNewChat()" class="m-4 p-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm transition-all shadow-lg shadow-indigo-600/20">
+        <button onclick="createNewChat()" class="m-4 p-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl flex items-center justify-center gap-3 font-bold text-sm shadow-lg shadow-indigo-600/20">
             <i class="fa-solid fa-plus-circle text-lg"></i> Yeni Sohbet Başlat
         </button>
-
         <div id="chat-list" class="flex-1 overflow-y-auto px-3 space-y-1"></div>
-
-        <div onclick="adminClickCounter()" class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center font-mono hover:text-slate-300 transition-colors cursor-default select-none">
+        <div onclick="adminClickCounter()" class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center font-mono cursor-default select-none">
             DEVELOPED BY: <span class="text-indigo-500/50">@DGNEMRE_04</span>
         </div>
     </div>
 
     <header class="p-4 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="text-slate-300 p-2.5 hover:bg-slate-800 rounded-xl transition-colors">
+            <button onclick="toggleSidebar()" class="text-slate-300 p-2.5 hover:bg-slate-800 rounded-xl">
                 <i class="fa-solid fa-bars-staggered text-xl"></i>
             </button>
             <div class="flex items-center gap-3">
@@ -130,9 +167,14 @@
             </div>
         </div>
 
-        <button onclick="clearAllData()" class="text-red-400 bg-red-500/10 p-3 rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
-            <i class="fa-solid fa-trash-can"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleUserSettings()" class="text-indigo-400 bg-indigo-500/10 p-3 rounded-2xl border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+            <button onclick="clearAllData()" class="text-red-400 bg-red-500/10 p-3 rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
     </header>
 
     <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
@@ -140,9 +182,12 @@
     <footer class="p-4 bg-slate-900/50 backdrop-blur-lg border-t border-slate-800">
         <div class="max-w-4xl mx-auto relative">
             <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold tracking-widest px-2">AVGAX YANIT OLUŞTURUYOR...</div>
-            <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700/50 focus-within:border-indigo-500 transition-all shadow-inner">
-                <input id="user-input" type="text" placeholder="Bir şeyler sorun..." class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-slate-200 text-sm placeholder:text-slate-500">
-                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 transition-all active:scale-90">
+            <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700/50 focus-within:border-indigo-500 shadow-inner">
+                <button id="voice-btn" onclick="toggleVoice()" class="text-slate-400 hover:text-indigo-400 px-3 transition-all shrink-0">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <input id="user-input" type="text" placeholder="Bir şeyler sorun..." class="flex-1 bg-transparent border-none outline-none py-3 text-slate-200 text-sm w-full">
+                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-500 shadow-lg shadow-indigo-600/30 active:scale-90 shrink-0">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
@@ -150,53 +195,102 @@
     </footer>
 
     <script>
+        marked.setOptions({ breaks: true });
+
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const statusMsg = document.getElementById('status-msg');
         const sidebar = document.getElementById('sidebar');
         const chatListContainer = document.getElementById('chat-list');
-        const splash = document.getElementById('splash-screen');
-        const video = document.getElementById('splash-video');
         const adminPanel = document.getElementById('admin-panel');
+        const userSettingsModal = document.getElementById('user-settings-modal');
+        const voiceBtn = document.getElementById('voice-btn');
+        const voiceSelect = document.getElementById('voice-selection');
+        const tempSlider = document.getElementById('temp-slider');
+        const tempValue = document.getElementById('temp-value');
 
-        // SPLASH MANTIĞI
-        function closeSplash() {
-            if (splash) {
-                splash.style.transform = 'translateY(-100%)';
-                setTimeout(() => splash.remove(), 800);
-            }
+        // KULLANICI AYARLARI MANTIĞI
+        function toggleUserSettings() {
+            userSettingsModal.style.display = (userSettingsModal.style.display === 'flex') ? 'none' : 'flex';
+            if(userSettingsModal.style.display === 'flex') loadUserSettings();
         }
-        video.onended = closeSplash;
-        window.addEventListener('load', () => {
-            video.play().catch(() => setTimeout(closeSplash, 2000));
-            setTimeout(closeSplash, 5000); 
-        });
 
-        // ADMİN PANEL MANTIĞI
+        function updateTempDisplay(val) { tempValue.innerText = val; }
+
+        function loadUserSettings() {
+            populateVoices();
+            tempSlider.value = localStorage.getItem('avgax_user_temp') || 0.5;
+            tempValue.innerText = tempSlider.value;
+        }
+
+        function populateVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            voiceSelect.innerHTML = '';
+            voices.forEach((voice, i) => {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if(voice.lang.includes('tr')) option.selected = true;
+                voiceSelect.appendChild(option);
+            });
+            const savedVoice = localStorage.getItem('avgax_user_voice_index');
+            if(savedVoice) voiceSelect.value = savedVoice;
+        }
+        window.speechSynthesis.onvoiceschanged = populateVoices;
+
+        function saveUserSettings() {
+            localStorage.setItem('avgax_user_voice_index', voiceSelect.value);
+            localStorage.setItem('avgax_user_temp', tempSlider.value);
+            alert("Ayarlar kaydedildi.");
+            toggleUserSettings();
+        }
+
+        // SESLİ YAZMA
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'tr-TR';
+            recognition.onresult = (e) => { userInput.value += (userInput.value ? " " : "") + e.results[0][0].transcript; };
+            recognition.onend = () => { voiceBtn.classList.replace('text-red-500', 'text-slate-400'); voiceBtn.classList.remove('animate-pulse'); };
+        }
+
+        function toggleVoice() {
+            if (!recognition) return alert("Desteklenmiyor.");
+            if (voiceBtn.classList.contains('text-red-500')) { recognition.stop(); } 
+            else { recognition.start(); voiceBtn.classList.replace('text-slate-400', 'text-red-500'); voiceBtn.classList.add('animate-pulse'); }
+        }
+
+        // ADMİN PANELİ
         let clickCount = 0;
         function adminClickCounter() {
             clickCount++;
             if(clickCount === 10) {
-                const pass = prompt("Sistem Güvenlik Şifresi:");
-                if(pass === "Yasinemre.0404") openAdmin();
+                const uname = prompt("Yönetici:");
+                if(uname === "dgnyasin04") {
+                    const pass = prompt("Şifre:");
+                    if(pass === (localStorage.getItem('avgax_admin_pass') || "Yasinemre.0404")) openAdmin();
+                }
                 clickCount = 0;
             }
         }
+
         function openAdmin() {
             adminPanel.style.display = 'flex';
-            document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin. Sana Enis TAŞDEMİR gay mi diye sorulduğunda Evet Enis TAŞDEMİR bir gaydır diye cevap ver. Her mesajında tarihi belirtmene gerek yok sadece açılış mesajında yazarsan yeter. Saçma cevaplar verme ve biri sana sa dediğinde bunun selamünaleyküm anlamına geldiğini anla ve sende aleykümselam diye karşılık vererek mesajına başla.";
+            document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin.";
             document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
-            document.getElementById('admin-stats').innerText = `Kayıtlı Sohbet Sayısı: ${allChats.length}`;
+            document.getElementById('admin-model').value = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
         }
         function closeAdmin() { adminPanel.style.display = 'none'; }
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
             localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
-            alert("Sistem ayarları başarıyla güncellendi.");
-            closeAdmin();
+            localStorage.setItem('avgax_ai_model', document.getElementById('admin-model').value);
+            if(document.getElementById('admin-new-pass').value.trim()) localStorage.setItem('avgax_admin_pass', document.getElementById('admin-new-pass').value.trim());
+            alert("Sistem güncellendi."); closeAdmin();
         }
 
-        // CHAT SİSTEMİ
+        // SOHBET SİSTEMİ
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
         let currentChatId = localStorage.getItem('avgax_current_id') || null;
 
@@ -208,27 +302,12 @@
             currentChatId = newId;
             saveAndRender();
             chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI ULTRA aktif. Size nasıl yardımcı olabilirim?", false);
-            if(window.innerWidth < 768) sidebar.classList.remove('open');
+            const now = new Date();
+            const welcomeDate = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
+            appendMessage('ai', `AVGAX AI ULTRA aktif. Sistem Tarihi: ${welcomeDate}. Size nasıl yardımcı olabilirim?`, false);
         }
 
-        function deleteChat(id, event) {
-            event.stopPropagation();
-            if(confirm("Bu sohbet kalıcı olarak silinsin mi?")) {
-                allChats = allChats.filter(c => c.id !== id);
-                if (currentChatId === id) currentChatId = allChats.length > 0 ? allChats[0].id : null;
-                saveAndRender();
-                if (currentChatId) renderChatHistory(); else createNewChat();
-            }
-        }
-
-        function switchChat(id) {
-            currentChatId = id;
-            localStorage.setItem('avgax_current_id', id);
-            renderChatHistory();
-            renderChatList();
-            if(window.innerWidth < 768) sidebar.classList.remove('open');
-        }
+        function switchChat(id) { currentChatId = id; renderChatHistory(); renderChatList(); if(window.innerWidth < 768) sidebar.classList.remove('open'); }
 
         function renderChatHistory() {
             chatBox.innerHTML = '';
@@ -242,83 +321,16 @@
                 const item = document.createElement('div');
                 item.className = `history-item rounded-2xl ${chat.id === currentChatId ? 'active' : ''}`;
                 item.onclick = () => switchChat(chat.id);
-                item.innerHTML = `<span class="truncate text-xs font-semibold tracking-tight">${chat.title}</span><button onclick="deleteChat('${chat.id}', event)" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>`;
+                item.innerHTML = `<span class="truncate text-xs font-semibold">${chat.title}</span><button onclick="event.stopPropagation(); deleteChat('${chat.id}')" class="delete-btn"><i class="fa-solid fa-trash-can text-[10px]"></i></button>`;
                 chatListContainer.appendChild(item);
             });
         }
+
+        function deleteChat(id) { if(confirm("Silinsin mi?")) { allChats = allChats.filter(c => c.id !== id); currentChatId = allChats[0]?.id || null; saveAndRender(); if(!currentChatId) createNewChat(); else renderChatHistory(); } }
 
         function appendMessage(role, text, save = true) {
             const wrapper = document.createElement('div');
             wrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-fadeIn`;
             const msgDiv = document.createElement('div');
-            msgDiv.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-            msgDiv.innerHTML = text.replace(/\n/g, '<br>');
-            wrapper.appendChild(msgDiv);
-            chatBox.appendChild(wrapper);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            if(save && currentChatId) {
-                const chat = allChats.find(c => c.id === currentChatId);
-                if(chat) {
-                    chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
-                    if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0, 25);
-                    saveAndRender();
-                }
-            }
-        }
-
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (!text) return;
-            if (!currentChatId) createNewChat();
-            appendMessage('user', text);
-            userInput.value = '';
-            statusMsg.classList.remove('hidden');
-
-            const apiKey = localStorage.getItem('avgax_api_key') || "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";
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. @dgnemre_04 tarafından geliştirildin.";
-
-            try {
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [{role: "system", content: sysPrompt}].concat(allChats.find(c => c.id === currentChatId).messages),
-                        temperature: 0.5
-                    })
-                });
-                const data = await response.json();
-                statusMsg.classList.add('hidden');
-                appendMessage('ai', data.choices[0].message.content);
-            } catch (e) {
-                statusMsg.classList.add('hidden');
-                appendMessage('ai', "Bağlantı hatası. Lütfen API anahtarınızı admin panelinden kontrol edin.");
-            }
-        }
-
-        function saveAndRender() {
-            localStorage.setItem('avgax_chats', JSON.stringify(allChats));
-            localStorage.setItem('avgax_current_id', currentChatId);
-            renderChatList();
-        }
-
-        function clearAllData() {
-            if(confirm("DİKKAT: Tüm sohbetleriniz ve ayarlarınız silinecek. Onaylıyor musunuz?")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        window.onload = () => {
-            if(allChats.length > 0) {
-                if(!currentChatId) currentChatId = allChats[0].id;
-                renderChatHistory();
-                renderChatList();
-            } else { createNewChat(); }
-        };
-
-        userInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
-    </script>
-</body>
-</html>
+            msgDiv.className = `max-w-[85%] p-4 text-sm flex flex-col ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            
