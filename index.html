@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AVGAX AI | ULTRA</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <link rel="apple-touch-icon" href="1577.jpg">
+    <link rel="icon" type="image/jpeg" href="1577.jpg">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #000; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
+        .chat-container { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+        .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 18px 18px 2px 18px; border: 1px solid #334155; }
+        .ai-msg { background: #2563eb; color: white; border-radius: 18px 18px 18px 2px; position: relative; }
+        
+        /* Kod Bloğu ve Kopyala Butonu */
+        .code-wrapper { position: relative; margin: 10px 0; }
+        .copy-code-btn { 
+            position: absolute; top: 8px; right: 8px; 
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px;
+            cursor: pointer; transition: all 0.2s; backdrop-filter: blur(5px);
+        }
+        .copy-code-btn:hover { background: rgba(255,255,255,0.2); }
+        pre { background: #0f172a !important; padding: 1.5rem 1rem 1rem 1rem !important; border-radius: 10px; overflow-x: auto; border: 1px solid #1e293b; }
+
+        #sidebar { transition: transform 0.4s; transform: translateX(-100%); z-index: 100; width: 280px; }
+        #sidebar.open { transform: translateX(0); }
+        #admin-panel, #user-settings-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 11000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
+        .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
+    </style>
+</head>
+<body class="bg-slate-950">
+
+    <div id="user-settings-modal">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-indigo-400"><i class="fa-solid fa-sliders"></i> AYARLAR</h2>
+            <button onclick="toggleUserSettings()" class="text-white bg-slate-800 h-10 w-10 rounded-full"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-6 max-w-xl mx-auto w-full">
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                <label class="block text-sm font-bold mb-4">OKUMA SESİ</label>
+                <select id="voice-selection" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200"></select>
+            </div>
+            <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                <div class="flex justify-between mb-4"><label class="text-sm font-bold">SICAKLIK (TEMP): <span id="temp-val">0.5</span></label></div>
+                <input type="range" id="temp-slider" min="0" max="2" step="0.1" class="w-full" oninput="document.getElementById('temp-val').innerText=this.value">
+            </div>
+            <button onclick="saveUserSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">KAYDET</button>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-indigo-400">ADMİN PANELİ</h2>
+            <button onclick="closeAdmin()" class="bg-slate-800 h-10 w-10 rounded-full"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-4 overflow-y-auto">
+            <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 h-32" placeholder="System Prompt"></textarea>
+            <select id="admin-model" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4">
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                <option value="llama3-8b-8192">Llama 3 8B</option>
+                <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                <option value="gemma2-9b-it">Gemma 2 9B</option>
+            </select>
+            <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Groq API Key">
+            <input id="admin-new-pass" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Yeni Şifre">
+            <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">SİSTEMİ GÜNCELLE</button>
+        </div>
+    </div>
+
+    <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <span class="font-bold text-indigo-400">GEÇMİŞ</span>
+            <button onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 rounded-xl font-bold">+ Yeni Sohbet</button>
+        <div id="chat-list" class="flex-1 overflow-y-auto px-2"></div>
+        <div id="admin-trigger" onclick="adminClickCounter()" class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center cursor-pointer">
+            DEVELOPED BY: <span class="text-indigo-400">@DGNEMRE_04</span>
+        </div>
+    </div>
+
+    <header class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="p-2"><i class="fa-solid fa-bars text-xl"></i></button>
+            <img src="1577.jpg" class="app-logo">
+            <span class="font-bold">AVGAX AI</span>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="toggleUserSettings()" class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20"><i class="fa-solid fa-gear"></i></button>
+            <button onclick="clearAllData()" class="p-3 bg-red-500/10 text-red-400 rounded-xl border border-red-500/20"><i class="fa-solid fa-trash"></i></button>
+        </div>
+    </header>
+
+    <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
+
+    <footer class="p-4 bg-slate-900 border-t border-slate-800">
+        <div class="max-w-4xl mx-auto">
+            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold px-2 uppercase">Yanıtlanıyor...</div>
+            <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700">
+                <button id="voice-btn" onclick="toggleVoice()" class="text-slate-400 px-3"><i class="fa-solid fa-microphone"></i></button>
+                <input id="user-input" type="text" placeholder="Bir şeyler yaz..." class="flex-1 bg-transparent border-none outline-none py-3 text-sm text-white">
+                <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        marked.setOptions({ breaks: true });
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const voiceBtn = document.getElementById('voice-btn');
+        const voiceSelect = document.getElementById('voice-selection');
+
+        // ADMIN KONTROL
+        let cCount = 0;
+        function adminClickCounter() {
+            cCount++;
+            if(cCount >= 10) {
+                const u = prompt("Yönetici:");
+                if(u === "dgnyasin04") {
+                    const p = prompt("Şifre:");
+                    if(p === (localStorage.getItem('avgax_admin_pass') || "Yasinemre.0404")) {
+                        document.getElementById('admin-panel').style.display = 'flex';
+                        document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "";
+                        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "";
+                    }
+                }
+                cCount = 0;
+            }
+        }
+        function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+        function saveAdminSettings() {
+            localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
+            localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
+            localStorage.setItem('avgax_ai_model', document.getElementById('admin-model').value);
+            if(document.getElementById('admin-new-pass').value) localStorage.setItem('avgax_admin_pass', document.getElementById('admin-new-pass').value);
+            alert("Sistem Güncellendi!"); closeAdmin();
+        }
+
+        // AYARLAR
+        function toggleUserSettings() {
+            const m = document.getElementById('user-settings-modal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+            if(m.style.display === 'flex') {
+                const voices = window.speechSynthesis.getVoices();
+                voiceSelect.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
+                document.getElementById('temp-slider').value = localStorage.getItem('avgax_user_temp') || 0.5;
+            }
+        }
+        function saveUserSettings() {
+            localStorage.setItem('avgax_user_voice_index', voiceSelect.value);
+            localStorage.setItem('avgax_user_temp', document.getElementById('temp-slider').value);
+            toggleUserSettings();
+        }
+
+        // SES VE MİKROFON
+        let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
+        if(recognition) {
+            recognition.lang = 'tr-TR';
+            recognition.onresult = (e) => { userInput.value += e.results[0][0].transcript; };
+            recognition.onend = () => { voiceBtn.classList.remove('text-red-500'); };
+        }
+        function toggleVoice() {
+            if(!recognition) return;
+            if(voiceBtn.classList.contains('text-red-500')) { recognition.stop(); }
+            else { recognition.start(); voiceBtn.classList.add('text-red-500'); }
+        }
+
+        // CHAT
+        let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
+        let currentChatId = localStorage.getItem('avgax_current_id');
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function createNewChat() {
+            const id = Date.now().toString();
+            allChats.unshift({ id, title: "Yeni Sohbet", messages: [] });
+            currentChatId = id; save(); renderList(); chatBox.innerHTML = '';
+            appendMessage('ai', "AVGAX AI Hazır.", false);
+        }
+
+        function appendMessage(role, text, saveMsg = true) {
+            const wrap = document.createElement('div');
+            wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
+            
+            const div = document.createElement('div');
+            div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            
+            let htmlContent = role === 'ai' ? marked.parse(text) : text;
+            
+            // KOD BLOKLARINA KOPYALA BUTONU EKLE
+            if(role === 'ai') {
+                htmlContent = htmlContent.replace(/<pre><code([\s\S]*?)<\/code><\/pre>/g, (match) => {
+                    return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyThisCode(this)">Kodu Kopyala</button>${match}</div>`;
+                });
+            }
+            
+            div.innerHTML = htmlContent;
+            if(role === 'ai') {
+                div.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+                const speakBtn = document.createElement('button');
+                speakBtn.className = "mt-2 text-[10px] bg-white/10 px-2 py-1 rounded";
+                speakBtn.innerHTML = "🔊 Sesli Oku";
+                speakBtn.onclick = () => {
+                    window.speechSynthesis.cancel();
+                    const u = new SpeechSynthesisUtterance(text);
+                    u.voice = window.speechSynthesis.getVoices()[localStorage.getItem('avgax_user_voice_index') || 0];
+                    window.speechSynthesis.speak(u);
+                };
+                div.appendChild(speakBtn);
+            }
+
+            wrap.appendChild(div); chatBox.appendChild(wrap); chatBox.scrollTop = chatBox.scrollHeight;
+            if(saveMsg && currentChatId) {
+                const c = allChats.find(x => x.id === currentChatId);
+                c.messages.push({role: role === 'assistant' || role === 'ai' ? 'assistant' : 'user', content: text});
+                if(role === 'user' && c.title === "Yeni Sohbet") c.title = text.substring(0,20);
+                save(); renderList();
+            }
+        }
+
+        function copyThisCode(btn) {
+            const code = btn.nextElementSibling.innerText;
+            navigator.clipboard.writeText(code);
+            btn.innerText = "Kopyalandı!";
+            setTimeout(() => btn.innerText = "Kodu Kopyala", 2000);
+        }
+
+        async function sendMessage() {
+            const val = userInput.value.trim(); if(!val) return;
+            if(!currentChatId) createNewChat();
+            appendMessage('user', val); userInput.value = '';
+            document.getElementById('status-msg').classList.remove('hidden');
+
+            const key = localStorage.getItem('avgax_api_key') || "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";
+            const model = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
+            
+            try {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{role: "system", content: localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın."}].concat(allChats.find(x => x.id === currentChatId).messages),
+                        temperature: parseFloat(localStorage.getItem('avgax_user_temp') || 0.5)
+                    })
+                });
+                const data = await res.json();
+                document.getElementById('status-msg').classList.add('hidden');
+                appendMessage('ai', data.choices[0].message.content);
+            } catch(e) { appendMessage('ai', "Hata oluştu!"); }
+        }
+
+        function save() { localStorage.setItem('avgax_chats', JSON.stringify(allChats)); localStorage.setItem('avgax_current_id', currentChatId); }
+        function renderList() {
+            document.getElementById('chat-list').innerHTML = allChats.map(c => `
+                <div class="p-3 mb-1 rounded-xl text-xs flex justify-between items-center ${c.id === currentChatId ? 'bg-indigo-600' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
+                    <span class="truncate">${c.title}</span>
+                    <i class="fa-solid fa-trash text-red-400" onclick="event.stopPropagation(); deleteChat('${c.id}')"></i>
+                </div>
+            `).join('');
+        }
+        function loadChat(id) { currentChatId = id; save(); chatBox.innerHTML = ''; const c = allChats.find(x => x.id === id); c.messages.forEach(m => appendMessage(m.role === 'assistant' ? 'ai' : 'user', m.content, false)); toggleSidebar(); }
+        function deleteChat(id) { allChats = allChats.filter(x => x.id !== id); if(currentChatId === id) currentChatId = null; save(); renderList(); chatBox.innerHTML = ''; }
+        function clearAllData() { if(confirm("TÜMÜ SİLİNSİN Mİ?")) { localStorage.clear(); location.reload(); } }
+
+        window.onload = () => { if(allChats.length) { renderList(); loadChat(currentChatId || allChats[0].id); } else { createNewChat(); } };
+        userInput.addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
+    </script>
+</body>
+</html>
+
