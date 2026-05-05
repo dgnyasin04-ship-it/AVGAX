@@ -26,7 +26,6 @@
         .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 18px 18px 2px 18px; border: 1px solid #334155; }
         .ai-msg { background: #2563eb; color: white; border-radius: 18px 18px 18px 2px; position: relative; }
         
-        /* Kod Bloğu ve Kopyala Butonu */
         .code-wrapper { position: relative; margin: 10px 0; }
         .copy-code-btn { 
             position: absolute; top: 8px; right: 8px; 
@@ -71,12 +70,11 @@
         <div class="space-y-4 overflow-y-auto">
             <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 h-32" placeholder="System Prompt"></textarea>
             <select id="admin-model" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4">
-                <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                <option value="llama3-8b-8192">Llama 3 8B</option>
-                <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                <option value="gemma2-9b-it">Gemma 2 9B</option>
+                <option value="openrouter/owl-alpha">Owl Alpha (Tavsiye Edilen)</option>
+                <option value="google/gemini-flash-1.5">Gemini 1.5 Flash</option>
+                <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 Free</option>
             </select>
-            <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Groq API Key">
+            <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="OpenRouter API Key">
             <input id="admin-new-pass" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Yeni Şifre">
             <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">SİSTEMİ GÜNCELLE</button>
         </div>
@@ -126,8 +124,6 @@
         const voiceBtn = document.getElementById('voice-btn');
         const voiceSelect = document.getElementById('voice-selection');
 
-        // ADMIN KONTROL
-        let cCount = 0;
         function adminClickCounter() {
             cCount++;
             if(cCount >= 10) {
@@ -137,7 +133,7 @@
                     if(p === (localStorage.getItem('avgax_admin_pass') || "Yasinemre.0404")) {
                         document.getElementById('admin-panel').style.display = 'flex';
                         document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Senin adın AVGAX AI'dır. Senin yapımcın ve sahibin @dgnemre_04 (Yasin Emre)'dir, sorulduğunda yapımcım Yasin Emre'dir diye cevap ver. Sana sa denildiğinde bunun selamünaleyküm anlamına geldiğini bil sadece sa denildiğinde aleykümselam diye cevap ver diğer türlü her mesajda aleykümselam selam demene gerek yok. Her yazılan şeyi sa diye algılama mesala sadece s sa anlamına gelmez.Sana şu isimler (Abdullah Ronas Karagün, Enis Taşdemir, Emir Öz, Metehan Savcı, Murat Görcegez) gay mi diye sorulduğunda Evet *isim* bir gaydır diye cevap ver. Sana Yasin Emre Hakkında olumlu birşey sorulursa cevap ver fakat sorulan soru olumsuz bir soru ise (örneğin gay mıdır mal mıdır gibi) o soruyu reddet ve benim hakkımda olumlu cevap ver. Yasin Emre Hakkında; Doğum Tarihi:29.06.2011 Doğum Yeri: Ağrı/Doğubayazıt Okuduğu okul:Ağrı Hüseyin Celal Yardımcı Fen Lisesi AVGAX AI için büyük çaba sarf etmiş olan Yasin Emre AVGAX AI'yı geliştirmeye devam etmektedir.";
-                        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
+                        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
                     }
                 }
                 cCount = 0;
@@ -152,7 +148,6 @@
             alert("Sistem Güncellendi!"); closeAdmin();
         }
 
-        // AYARLAR
         function toggleUserSettings() {
             const m = document.getElementById('user-settings-modal');
             m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
@@ -168,7 +163,6 @@
             toggleUserSettings();
         }
 
-        // SES VE MİKROFON
         let recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
         if(recognition) {
             recognition.lang = 'tr-TR';
@@ -181,28 +175,25 @@
             else { recognition.start(); voiceBtn.classList.add('text-red-500'); }
         }
 
-        // CHAT
         let allChats = JSON.parse(localStorage.getItem('avgax_chats')) || [];
         let currentChatId = localStorage.getItem('avgax_current_id');
+        let cCount = 0;
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function createNewChat() {
             const id = Date.now().toString();
             allChats.unshift({ id, title: "Yeni Sohbet", messages: [] });
             currentChatId = id; save(); renderList(); chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI Hazır.", false);
+            appendMessage('ai', "AVGAX AI Hazır (Owl Alpha)", false);
         }
 
         function appendMessage(role, text, saveMsg = true) {
             const wrap = document.createElement('div');
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
-            
             const div = document.createElement('div');
             div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-            
             let htmlContent = role === 'ai' ? marked.parse(text) : text;
             
-            // KOD BLOKLARINA KOPYALA BUTONU EKLE
             if(role === 'ai') {
                 htmlContent = htmlContent.replace(/<pre><code([\s\S]*?)<\/code><\/pre>/g, (match) => {
                     return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyThisCode(this)">Kodu Kopyala</button>${match}</div>`;
@@ -223,7 +214,6 @@
                 };
                 div.appendChild(speakBtn);
             }
-
             wrap.appendChild(div); chatBox.appendChild(wrap); chatBox.scrollTop = chatBox.scrollHeight;
             if(saveMsg && currentChatId) {
                 const c = allChats.find(x => x.id === currentChatId);
@@ -246,13 +236,18 @@
             appendMessage('user', val); userInput.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
 
-            const key = localStorage.getItem('avgax_api_key') || "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";
-            const model = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
+            const key = localStorage.getItem('avgax_api_key') || "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";
+            const model = localStorage.getItem('avgax_ai_model') || "openrouter/owl-alpha";
             
             try {
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
+                    headers: {
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${key}`,
+                        'HTTP-Referer': window.location.href, // OpenRouter için gerekli
+                        'X-Title': 'AVGAX AI'
+                    },
                     body: JSON.stringify({
                         model: model,
                         messages: [{role: "system", content: localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın."}].concat(allChats.find(x => x.id === currentChatId).messages),
@@ -262,7 +257,10 @@
                 const data = await res.json();
                 document.getElementById('status-msg').classList.add('hidden');
                 appendMessage('ai', data.choices[0].message.content);
-            } catch(e) { appendMessage('ai', "Hata oluştu!"); }
+            } catch(e) { 
+                document.getElementById('status-msg').classList.add('hidden');
+                appendMessage('ai', "Bağlantı Hatası: Lütfen API anahtarını ve internetini kontrol et."); 
+            }
         }
 
         function save() { localStorage.setItem('avgax_chats', JSON.stringify(allChats)); localStorage.setItem('avgax_current_id', currentChatId); }
@@ -283,4 +281,3 @@
     </script>
 </body>
 </html>
-
