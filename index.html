@@ -55,7 +55,7 @@
                 <select id="voice-selection" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200"></select>
             </div>
             <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
-                <div class="flex justify-between mb-4"><label class="text-sm font-bold">SICAKLIK (TEMP): <span id="temp-val">0.5</span></label></div>
+                <div class="flex justify-between mb-4"><label class="text-sm font-bold">DAHA CİDDİ⟨====⟩DAHA KOMİK <span id="temp-val">0.5</span></label></div>
                 <input type="range" id="temp-slider" min="0" max="2" step="0.1" class="w-full" oninput="document.getElementById('temp-val').innerText=this.value">
             </div>
             <button onclick="saveUserSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">KAYDET</button>
@@ -108,7 +108,7 @@
 
     <footer class="p-4 bg-slate-900 border-t border-slate-800">
         <div class="max-w-4xl mx-auto">
-            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold px-2 uppercase">Yanıtlanıyor...</div>
+            <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold px-2 uppercase">Avgax AI Yanıtlıyor...</div>
             <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700">
                 <button id="voice-btn" onclick="toggleVoice()" class="text-slate-400 px-3"><i class="fa-solid fa-microphone"></i></button>
                 <input id="user-input" type="text" placeholder="Bir şeyler yaz..." class="flex-1 bg-transparent border-none outline-none py-3 text-sm text-white">
@@ -184,7 +184,7 @@
             const id = Date.now().toString();
             allChats.unshift({ id, title: "Yeni Sohbet", messages: [] });
             currentChatId = id; save(); renderList(); chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI Hazır (Groq Engine). Size nasıl yardımcı olabilirim?", false);
+            appendMessage('ai', "AVGAX AI Hazır. Size nasıl yardımcı olabilirim?", false);
         }
 
         function appendMessage(role, text, saveMsg = true) {
@@ -248,7 +248,7 @@
                     },
                     body: JSON.stringify({
                         model: model,
-                        messages: [{role: "system", content: localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın."}].concat(allChats.find(x => x.id === currentChatId).messages),
+                        messages: [{role: "system", content: localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın. Yapımcın Yasin Emre'dir."}].concat(allChats.find(x => x.id === currentChatId).messages),
                         temperature: parseFloat(localStorage.getItem('avgax_user_temp') || 0.5)
                     })
                 });
@@ -272,7 +272,7 @@
         }
         function loadChat(id) { currentChatId = id; save(); chatBox.innerHTML = ''; const c = allChats.find(x => x.id === id); c.messages.forEach(m => appendMessage(m.role === 'assistant' ? 'ai' : 'user', m.content, false)); toggleSidebar(); }
         function deleteChat(id) { allChats = allChats.filter(x => x.id !== id); if(currentChatId === id) currentChatId = null; save(); renderList(); chatBox.innerHTML = ''; }
-        function clearAllData() { if(confirm("TÜMÜ SİLİNSİN Mİ?")) { localStorage.clear(); location.reload(); } }
+        function clearAllData() { if(confirm("TÜM SOHBETLER SİLİNSİN Mİ?")) { localStorage.clear(); location.reload(); } }
 
         window.onload = () => { if(allChats.length) { renderList(); loadChat(currentChatId || allChats[0].id); } else { createNewChat(); } };
         userInput.addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
