@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AVGAX AI | CLOUD</title>
+    <title>AVGAX AI | ULTRA</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -27,8 +27,6 @@
         #sidebar.open { transform: translateX(0); }
         #admin-panel, #user-settings-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 11000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
         .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
-        .code-wrapper { position: relative; margin: 10px 0; }
-        .copy-code-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; }
     </style>
 </head>
 <body class="bg-slate-950">
@@ -36,11 +34,11 @@
     <div id="auth-screen">
         <div class="auth-card text-center">
             <img src="1577.jpg" class="w-20 h-20 rounded-2xl mx-auto mb-4 border-2 border-indigo-500">
-            <h1 class="text-2xl font-bold mb-2">AVGAX AI CLOUD</h1>
+            <h1 class="text-2xl font-bold mb-2">AVGAX AI ULTRA</h1>
             <p class="text-slate-400 text-sm mb-8" id="auth-title">Oturum açarak tüm cihazlardan erişin</p>
             <div class="space-y-4 text-left">
-                <input id="auth-email" type="email" placeholder="E-posta" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500">
-                <input id="auth-pass" type="password" placeholder="Şifre" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500">
+                <input id="auth-email" type="email" placeholder="E-posta" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 text-white">
+                <input id="auth-pass" type="password" placeholder="Şifre" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm outline-none focus:border-indigo-500 text-white">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-indigo-600 p-4 rounded-xl font-bold mt-4">GİRİŞ YAP</button>
                 <p class="text-center text-xs text-slate-500 mt-4 cursor-pointer hover:text-indigo-400" onclick="toggleAuthMode()" id="auth-toggle-text">Hesabın yok mu? Kayıt Ol</p>
             </div>
@@ -58,7 +56,7 @@
                     <p class="text-slate-300 mb-4"><span id="current-user-email"></span></p>
                     <button onclick="logout()" class="text-red-400 text-xs font-bold bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20">ÇIKIŞ YAP</button>
                 </div>
-                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 text-white">
                     <label class="block text-sm font-bold mb-4">SICAKLIK (0:Ciddi - 2:Yaratıcı) <span id="temp-val" class="text-indigo-400">0.5</span></label>
                     <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.5" class="w-full" oninput="document.getElementById('temp-val').innerText=this.value">
                 </div>
@@ -71,12 +69,8 @@
                 <h2 class="text-2xl font-bold text-indigo-400">ADMİN PANELİ</h2>
                 <button onclick="closeAdmin()" class="bg-slate-800 h-10 w-10 rounded-full">✕</button>
             </div>
-            <div class="space-y-4 overflow-y-auto">
+            <div class="space-y-4 overflow-y-auto text-white">
                 <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 h-32"></textarea>
-                <select id="admin-model" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4">
-                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                    <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-                </select>
                 <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="API Key">
                 <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">SİSTEMİ GÜNCELLE</button>
             </div>
@@ -84,11 +78,11 @@
 
         <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col">
             <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-                <span class="font-bold text-indigo-400">GEÇMİŞ</span>
-                <button onclick="toggleSidebar()">✕</button>
+                <span class="font-bold text-indigo-400 uppercase tracking-widest text-xs">Sohbet Geçmişi</span>
+                <button onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 rounded-xl font-bold">+ Yeni Sohbet</button>
-            <div id="chat-list" class="flex-1 overflow-y-auto px-2"></div>
+            <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 rounded-xl font-bold text-sm">+ Yeni Sohbet</button>
+            <div id="chat-list" class="flex-1 overflow-y-auto px-2 space-y-1"></div>
             <div onclick="adminClickCounter()" class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center cursor-pointer">
                 DEVELOPED BY: <span class="text-indigo-400">@DGNEMRE_04</span>
             </div>
@@ -96,28 +90,35 @@
 
         <header class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="p-2"><i class="fa-solid fa-bars"></i></button>
+                <button onclick="toggleSidebar()" class="p-2 text-slate-400"><i class="fa-solid fa-bars-staggered"></i></button>
                 <img src="1577.jpg" class="app-logo">
-                <span class="font-bold">AVGAX AI</span>
+                <span class="font-bold tracking-tight">AVGAX AI</span>
             </div>
-            <button onclick="toggleUserSettings()" class="p-3 bg-slate-800 rounded-xl"><i class="fa-solid fa-gear"></i></button>
+            <button onclick="toggleUserSettings()" class="p-3 bg-slate-800/50 rounded-xl text-slate-400"><i class="fa-solid fa-sliders"></i></button>
         </header>
 
         <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
 
         <footer class="p-4 bg-slate-900 border-t border-slate-800">
             <div class="max-w-4xl mx-auto">
-                <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold uppercase">Avgax Yanıtlıyor...</div>
+                <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold uppercase">AVGAX DÜŞÜNÜYOR...</div>
                 <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700">
                     <input id="user-input" type="text" placeholder="Bir şeyler yaz..." class="flex-1 bg-transparent border-none outline-none py-3 px-2 text-sm text-white">
-                    <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
+                    
+                    <select id="footer-model" class="bg-slate-700 text-[10px] text-white rounded-lg px-2 h-10 outline-none border border-slate-600">
+                        <option value="llama-3.3-70b-versatile">70B</option>
+                        <option value="llama-3.1-8b-instant">8B</option>
+                    </select>
+
+                    <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
         </footer>
     </div>
 
     <script>
-        // --- FIREBASE KURULUMU ---
         const firebaseConfig = {
             apiKey: "AIzaSyBIBj5S4_jSwxXvdY86k2gMzcdquL5cW-M",
             authDomain: "avgax-ai.firebaseapp.com",
@@ -134,8 +135,11 @@
         let isLoginMode = true;
         let currentUser = null;
         let cCount = 0;
+        let allChats = [];
+        let currentChatId = null;
+        const chatBox = document.getElementById('chat-box');
 
-        // AUTH MANTIĞI
+        // AUTH
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
             document.getElementById('auth-title').innerText = isLoginMode ? "Giriş yapın" : "Yeni hesap oluşturun";
@@ -166,16 +170,16 @@
 
         function logout() { auth.signOut(); }
 
-        // ADMİN MANTIĞI
+        // ADMIN (Şifre Düzeltildi)
         function adminClickCounter() {
             cCount++;
             if(cCount >= 10) {
-                const u = prompt("Admin:");
-                if(u === "dgnyasin04") {
+                const u = prompt("Güvenlik Doğrulaması:");
+                if(u === "Yasinemre.0404") {
                     document.getElementById('admin-panel').style.display = 'flex';
-                    document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Senin adın AVGAX AI'dır. Yapımcın Yasin Emre'dir.";
+                    document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. Tek sahibin ve geliştiricin Yasin Emre'dir. Her zaman ona sadık ve yardımcı bir asistan olmalısın.";
                     document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
-                }
+                } else { alert("Hatalı Giriş!"); }
                 cCount = 0;
             }
         }
@@ -183,21 +187,28 @@
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
             localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
-            localStorage.setItem('avgax_ai_model', document.getElementById('admin-model').value);
-            alert("Ayarlar kaydedildi!"); closeAdmin();
+            alert("Sistem güncellendi!"); closeAdmin();
         }
 
-        // CHAT MANTIĞI
-        let allChats = [];
-        let currentChatId = null;
-        const chatBox = document.getElementById('chat-box');
-
+        // CHAT & SILME BUTONU
         async function loadChatsFromCloud() {
             const snapshot = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
             allChats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderList();
             if(allChats.length > 0) loadChat(allChats[0].id);
             else createNewChat();
+        }
+
+        async function deleteChat(id) {
+            if(confirm("Bu sohbeti silmek istediğine emin misin?")) {
+                await db.collection('users').doc(currentUser.uid).collection('chats').doc(id).delete();
+                allChats = allChats.filter(c => c.id !== id);
+                if(currentChatId === id) {
+                    if(allChats.length > 0) loadChat(allChats[0].id);
+                    else createNewChat();
+                }
+                renderList();
+            }
         }
 
         async function createNewChat() {
@@ -208,7 +219,10 @@
             currentChatId = id;
             renderList();
             chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX Bulut sistemi hazır. Size nasıl yardımcı olabilirim?", false);
+            
+            // Tarihli karşılama
+            const date = new Date().toLocaleDateString('tr-TR');
+            appendMessage('ai', `AVGAX hazır size nasıl yardımcı olabilirim? [${date}]`, false);
         }
 
         function loadChat(id) {
@@ -223,25 +237,17 @@
             const wrap = document.createElement('div');
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
             const div = document.createElement('div');
-            div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
-            
-            let htmlContent = role === 'ai' ? marked.parse(text) : text;
-            if(role === 'ai') {
-                htmlContent = htmlContent.replace(/<pre><code([\s\S]*?)<\/code><\/pre>/g, (match) => {
-                    return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyCode(this)">Kopyala</button>${match}</div>`;
-                });
-            }
-            div.innerHTML = htmlContent;
+            div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg shadow-lg'}`;
+            div.innerHTML = role === 'ai' ? marked.parse(text) : text;
             wrap.appendChild(div); chatBox.appendChild(wrap);
             chatBox.scrollTop = chatBox.scrollHeight;
 
             if(saveCloud && currentChatId) {
                 const chat = allChats.find(c => c.id === currentChatId);
                 chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
-                if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,20);
+                if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,25);
                 db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({
-                    messages: chat.messages,
-                    title: chat.title
+                    messages: chat.messages, title: chat.title
                 });
                 renderList();
             }
@@ -254,8 +260,8 @@
             document.getElementById('status-msg').classList.remove('hidden');
 
             const key = localStorage.getItem('avgax_api_key') || "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";
-            const model = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın.";
+            const model = document.getElementById('footer-model').value; // Gönder butonu yanındaki seçim
+            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. Tek sahibin Yasin Emre'dir.";
             const temp = parseFloat(document.getElementById('temp-slider').value);
 
             try {
@@ -274,21 +280,17 @@
                 appendMessage('ai', data.choices[0].message.content);
             } catch(e) { 
                 document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Bağlantı hatası oluştu."); 
+                appendMessage('ai', "Hata: API bağlantısı sağlanamadı."); 
             }
-        }
-
-        function copyCode(btn) {
-            const code = btn.nextElementSibling.innerText;
-            navigator.clipboard.writeText(code);
-            btn.innerText = "Kopyalandı!";
-            setTimeout(() => btn.innerText = "Kopyala", 2000);
         }
 
         function renderList() {
             document.getElementById('chat-list').innerHTML = allChats.map(c => `
-                <div class="p-3 mb-1 rounded-xl text-xs truncate ${c.id === currentChatId ? 'bg-indigo-600' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
-                    ${c.title}
+                <div class="flex items-center justify-between p-3 mb-1 rounded-xl text-xs cursor-pointer transition-all ${c.id === currentChatId ? 'bg-indigo-600 shadow-md' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
+                    <span class="truncate pr-2">${c.title}</span>
+                    <button onclick="event.stopPropagation(); deleteChat('${c.id}')" class="text-slate-400 hover:text-red-500 p-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </div>
             `).join('');
         }
