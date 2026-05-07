@@ -234,11 +234,16 @@
             document.getElementById('footer-model').value = 'llama-3.3-70b-versatile';
         }
 
-        async function openAdmin() {
-            if(!userData?.isAdmin) return;
-            document.getElementById('admin-panel').style.display = 'flex';
-            document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "";
-            document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "";
+        // 237. SATIR CİVARINDAKİ ESKİ FONKSİYONU ŞUNUNLA DEĞİŞTİR:
+
+async function openAdmin() {
+    // Kendi e-postanı buraya yazmayı unutma!
+    if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
+        document.getElementById('admin-panel').style.display = 'flex';
+        document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "";
+        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "";
+        
+        try {
             const usersSnap = await db.collection('users').get();
             const listDiv = document.getElementById('admin-user-list');
             listDiv.innerHTML = '';
@@ -247,10 +252,17 @@
                 if(id === currentUser.uid) return;
                 const item = document.createElement('div');
                 item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                item.innerHTML = `<div><p class="font-bold text-white">${u.username} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
+                item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
                 listDiv.appendChild(item);
             });
+        } catch(e) {
+            console.error("Hata:", e);
         }
+    } else {
+        alert("Yetkiniz yok!");
+    }
+}
+        
         async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
         async function toggleUserAdmin(id, cur) { await db.collection('users').doc(id).update({isAdmin: !cur}); openAdmin(); }
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
