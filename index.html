@@ -27,6 +27,7 @@
         #sidebar.open { transform: translateX(0); }
         #admin-panel, #user-settings-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 11000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
         .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
+        .preview-img { max-height: 100px; border-radius: 10px; border: 2px solid #2563eb; }
     </style>
 </head>
 <body class="bg-slate-950">
@@ -38,12 +39,10 @@
             <p class="text-slate-400 text-sm mb-6" id="auth-title">Giriş yapın</p>
             <div class="space-y-3 text-left">
                 <input id="auth-email" type="email" placeholder="E-posta" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
-                
                 <div id="register-fields" class="hidden space-y-3">
                     <input id="auth-username" type="text" placeholder="Kullanıcı Adı" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                     <input id="auth-phone" type="tel" placeholder="Telefon (İsteğe bağlı)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                 </div>
-
                 <input id="auth-pass" type="password" placeholder="Şifre" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-indigo-600 p-4 rounded-xl font-bold mt-4 uppercase">Giriş Yap</button>
                 <p class="text-center text-xs text-slate-500 mt-4 cursor-pointer hover:text-indigo-400" onclick="toggleAuthMode()" id="auth-toggle-text">Hesabın yok mu? Kayıt Ol</p>
@@ -85,8 +84,7 @@
                 </div>
                 <div class="space-y-4">
                     <h3 class="text-sm font-bold text-slate-500 uppercase">Kullanıcı Yönetimi</h3>
-                    <div id="admin-user-list" class="space-y-2 max-h-[400px] overflow-y-auto">
-                        </div>
+                    <div id="admin-user-list" class="space-y-2 max-h-[400px] overflow-y-auto"></div>
                 </div>
             </div>
         </div>
@@ -103,16 +101,35 @@
             </div>
         </header>
 
+        <div id="sidebar" class="fixed inset-y-0 left-0 bg-slate-900 border-r border-slate-800 flex flex-col">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                <span class="font-bold text-indigo-400 uppercase tracking-widest text-xs">Sohbet Geçmişi</span>
+                <button onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <button onclick="createNewChat()" class="m-4 p-3 bg-indigo-600 rounded-xl font-bold text-sm">+ Yeni Sohbet</button>
+            <div id="chat-list" class="flex-1 overflow-y-auto px-2 space-y-1"></div>
+            <div class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center uppercase">DEVELOPED BY: <span class="text-indigo-400">@DGNEMRE_04</span></div>
+        </div>
+
         <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
 
         <footer class="p-4 bg-slate-900 border-t border-slate-800">
             <div class="max-w-4xl mx-auto">
-                <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold uppercase">AVGAX DÜŞÜNÜYOR...</div>
+                <div id="image-preview-container" class="hidden mb-2 p-2 bg-slate-800 rounded-xl flex items-center gap-4">
+                    <img id="image-preview" src="" class="preview-img">
+                    <button onclick="clearImage()" class="text-red-500 bg-red-500/10 p-2 rounded-lg">✕ Sil</button>
+                </div>
+                <div id="status-msg" class="hidden text-[10px] text-indigo-400 mb-2 animate-pulse font-bold uppercase">AVGAX İŞLİYOR...</div>
                 <div class="flex items-center gap-2 bg-slate-800/40 rounded-2xl p-2 border border-slate-700">
-                    <input id="user-input" type="text" placeholder="Bir şeyler yaz..." class="flex-1 bg-transparent border-none outline-none py-3 px-2 text-sm text-white">
+                    <button onclick="document.getElementById('image-input').click()" class="p-3 text-slate-400 hover:text-indigo-400 transition-colors">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+                    <input type="file" id="image-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                    <input id="user-input" type="text" placeholder="Mesaj yaz veya görsel at..." class="flex-1 bg-transparent border-none outline-none py-3 px-2 text-sm text-white">
                     <select id="footer-model" class="bg-slate-700 text-[10px] text-white rounded-lg px-2 h-10 outline-none border border-slate-600">
                         <option value="llama-3.3-70b-versatile">70B</option>
                         <option value="llama-3.1-8b-instant">8B</option>
+                        <option value="llama-3.2-11b-vision-preview">VISION</option>
                     </select>
                     <button onclick="sendMessage()" class="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center shrink-0">
                         <i class="fa-solid fa-paper-plane"></i>
@@ -141,6 +158,7 @@
         let userData = null;
         let allChats = [];
         let currentChatId = null;
+        let selectedImageData = null;
 
         function toggleAuthMode() {
             isLoginMode = !isLoginMode;
@@ -154,20 +172,13 @@
             const pass = document.getElementById('auth-pass').value;
             const username = document.getElementById('auth-username').value;
             const phone = document.getElementById('auth-phone').value;
-
             try {
-                if(isLoginMode) {
-                    await auth.signInWithEmailAndPassword(email, pass);
-                } else {
+                if(isLoginMode) { await auth.signInWithEmailAndPassword(email, pass); }
+                else {
                     if(!username) return alert("Kullanıcı adı zorunludur!");
                     const userCred = await auth.createUserWithEmailAndPassword(email, pass);
                     await db.collection('users').doc(userCred.user.uid).set({
-                        username: username,
-                        phone: phone || "Belirtilmedi",
-                        email: email,
-                        isAdmin: false,
-                        isBanned: false,
-                        createdAt: Date.now()
+                        username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
                     });
                 }
             } catch(e) { alert("Hata: " + e.message); }
@@ -177,21 +188,12 @@
             if (user) {
                 const doc = await db.collection('users').doc(user.uid).get();
                 userData = doc.data();
-
-                if(userData?.isBanned) {
-                    alert("Hesabınız banlanmıştır!");
-                    auth.signOut();
-                    return;
-                }
-
+                if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
                 currentUser = user;
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('current-user-email').innerText = user.email;
                 document.getElementById('display-username').innerText = userData?.username || "Kullanıcı";
-                
                 if(userData?.isAdmin) document.getElementById('admin-btn').classList.remove('hidden');
-                
                 loadChatsFromULTRA();
             } else {
                 document.getElementById('auth-screen').style.display = 'flex';
@@ -201,65 +203,56 @@
 
         function logout() { auth.signOut(); }
 
-        // ADMIN FONKSIYONLARI
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    selectedImageData = e.target.result;
+                    document.getElementById('image-preview').src = selectedImageData;
+                    document.getElementById('image-preview-container').classList.remove('hidden');
+                    document.getElementById('footer-model').value = 'llama-3.2-11b-vision-preview';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearImage() {
+            selectedImageData = null;
+            document.getElementById('image-preview-container').classList.add('hidden');
+            document.getElementById('image-input').value = '';
+            document.getElementById('footer-model').value = 'llama-3.3-70b-versatile';
+        }
+
         async function openAdmin() {
             if(!userData?.isAdmin) return;
             document.getElementById('admin-panel').style.display = 'flex';
             document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "";
             document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "";
-            
-            // Kullanıcı listesini yükle
             const usersSnap = await db.collection('users').get();
             const listDiv = document.getElementById('admin-user-list');
             listDiv.innerHTML = '';
-            
             usersSnap.forEach(doc => {
-                const u = doc.data();
-                const id = doc.id;
+                const u = doc.data(); const id = doc.id;
                 if(id === currentUser.uid) return;
-
                 const item = document.createElement('div');
                 item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                item.innerHTML = `
-                    <div>
-                        <p class="font-bold text-white">${u.username} ${u.isAdmin ? '⭐' : ''}</p>
-                        <p class="text-slate-500">${u.email}</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="toggleUserBan('${id}', ${u.isBanned})" class="p-2 rounded bg-${u.isBanned ? 'green' : 'red'}-500/10 text-${u.isBanned ? 'green' : 'red'}-500 border border-${u.isBanned ? 'green' : 'red'}-500/20">
-                            ${u.isBanned ? 'Aç' : 'Ban'}
-                        </button>
-                        <button onclick="toggleUserAdmin('${id}', ${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                            Yetki
-                        </button>
-                    </div>
-                `;
+                item.innerHTML = `<div><p class="font-bold text-white">${u.username} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
                 listDiv.appendChild(item);
             });
         }
-
-        async function toggleUserBan(id, current) {
-            await db.collection('users').doc(id).update({ isBanned: !current });
-            openAdmin();
-        }
-
-        async function toggleUserAdmin(id, current) {
-            await db.collection('users').doc(id).update({ isAdmin: !current });
-            openAdmin();
-        }
-
+        async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
+        async function toggleUserAdmin(id, cur) { await db.collection('users').doc(id).update({isAdmin: !cur}); openAdmin(); }
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
-        
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
             localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
-            alert("Sistem ayarları güncellendi!");
+            alert("Sistem güncellendi!");
         }
 
-        // CHAT MANTIGI
         async function loadChatsFromULTRA() {
-            const snapshot = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
-            allChats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const snap = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
+            allChats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderList();
             if(allChats.length > 0) loadChat(allChats[0].id);
             else createNewChat();
@@ -269,10 +262,7 @@
             if(confirm("Sohbeti silmek istediğine emin misin?")) {
                 await db.collection('users').doc(currentUser.uid).collection('chats').doc(id).delete();
                 allChats = allChats.filter(c => c.id !== id);
-                if(currentChatId === id) {
-                    if(allChats.length > 0) loadChat(allChats[0].id);
-                    else createNewChat();
-                }
+                if(currentChatId === id) { if(allChats.length > 0) loadChat(allChats[0].id); else createNewChat(); }
                 renderList();
             }
         }
@@ -285,8 +275,7 @@
             currentChatId = id;
             renderList();
             document.getElementById('chat-box').innerHTML = '';
-            const date = new Date().toLocaleDateString('tr-TR');
-            appendMessage('ai', `AVGAX hazır size nasıl yardımcı olabilirim? [${date}]`, false);
+            appendMessage('ai', `AVGAX ULTRA Hazır. ${new Date().toLocaleDateString('tr-TR')}`, false);
         }
 
         function loadChat(id) {
@@ -297,53 +286,94 @@
             renderList();
         }
 
-        function appendMessage(role, text, saveULTRA = true) {
-            const chatBox = document.getElementById('chat-box');
+        function appendMessage(role, text, save = true) {
+            const box = document.getElementById('chat-box');
             const wrap = document.createElement('div');
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
             const div = document.createElement('div');
             div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg shadow-lg'}`;
             div.innerHTML = role === 'ai' ? marked.parse(text) : text;
-            wrap.appendChild(div); chatBox.appendChild(wrap);
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            if(saveULTRA && currentChatId) {
+            wrap.appendChild(div); box.appendChild(wrap);
+            box.scrollTop = box.scrollHeight;
+            if(save && currentChatId) {
                 const chat = allChats.find(c => c.id === currentChatId);
                 chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
                 if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,25);
-                db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({
-                    messages: chat.messages, title: chat.title
-                });
+                db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({messages: chat.messages, title: chat.title});
                 renderList();
             }
         }
 
-        async function sendMessage() {
+                async function sendMessage() {
             const input = document.getElementById('user-input');
-            const val = input.value.trim(); if(!val) return;
-            appendMessage('user', val); input.value = '';
+            const textVal = input.value.trim();
+            if(!textVal && !selectedImageData) return;
+
+            let displayMsg = textVal;
+            if(selectedImageData) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Bu görseli incele.'}`;
+            appendMessage('user', displayMsg);
+            input.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
 
             const key = localStorage.getItem('avgax_api_key') || "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";
-            const model = document.getElementById('footer-model').value; 
-            const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. Geliştiricin Yasin Emre'dir.";
+            const currentModel = document.getElementById('footer-model').value;
+            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın.";
             const temp = parseFloat(document.getElementById('temp-slider').value);
-
+            
             const now = new Date();
             const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const dynamicPrompt = `${baseSysPrompt} GÜNCEL ZAMAN: ${dateStr}, saat ${now.toLocaleTimeString('tr-TR')}.`;
+            const dynamicPrompt = `${sysPrompt} GÜNCEL ZAMAN: ${dateStr}, saat ${now.toLocaleTimeString('tr-TR')}.`;
+
+            let messages;
+            if(selectedImageData) {
+                messages = [
+                    { role: "system", content: dynamicPrompt },
+                    {
+                        role: "user",
+                        content: [
+                            { type: "text", text: textVal || "Bu görseli analiz et ve açıkla." },
+                            { type: "image_url", image_url: { url: selectedImageData } }
+                        ]
+                    }
+                ];
+                clearImage();
+            } else {
+                const chat = allChats.find(c => c.id === currentChatId);
+                messages = [{role: "system", content: dynamicPrompt}].concat(chat.messages);
+            }
 
             try {
-                const chat = allChats.find(c => c.id === currentChatId);
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
                     body: JSON.stringify({
-                        model: model,
+                        model: selectedImageData ? "llama-3.2-11b-vision-preview" : currentModel,
                         temperature: temp,
-                        messages: [{role: "system", content: dynamicPrompt}].concat(chat.messages)
+                        messages: messages
                     })
                 });
                 const data = await res.json();
                 document.getElementById('status-msg').classList.add('hidden');
-                appendM
+                appendMessage('ai', data.choices[0].message.content);
+            } catch(e) { 
+                document.getElementById('status-msg').classList.add('hidden');
+                appendMessage('ai', "Hata: Sunucuya bağlanılamadı."); 
+            }
+        }
+
+        function renderList() {
+            document.getElementById('chat-list').innerHTML = allChats.map(c => `
+                <div class="flex items-center justify-between p-3 mb-1 rounded-xl text-xs cursor-pointer transition-all ${c.id === currentChatId ? 'bg-indigo-600 shadow-md' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
+                    <span class="truncate pr-2">${c.title}</span>
+                    <button onclick="event.stopPropagation(); deleteChat('${c.id}')" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function toggleUserSettings() { const m = document.getElementById('user-settings-modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
+        document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
+        marked.setOptions({ breaks: true });
+    </script>
+</body>
+</html>
