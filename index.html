@@ -26,15 +26,15 @@
         .user-msg { background: #1e293b; color: #f1f5f9; border-radius: 18px 18px 2px 18px; border: 1px solid #334155; }
         .ai-msg { background: #2563eb; color: white; border-radius: 18px 18px 18px 2px; position: relative; }
         
-        .code-wrapper { position: relative; margin: 10px 0; }
+        .code-wrapper { position: relative; margin: 10px 0; z-index: 1; }
         .copy-code-btn { 
-            position: absolute; top: 8px; right: 8px; 
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 10px;
+            position: absolute; top: 12px; right: 12px; z-index: 50;
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+            color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 11px;
             cursor: pointer; transition: all 0.2s; backdrop-filter: blur(5px);
         }
-        .copy-code-btn:hover { background: rgba(255,255,255,0.2); }
-        pre { background: #0f172a !important; padding: 1.5rem 1rem 1rem 1rem !important; border-radius: 10px; overflow-x: auto; border: 1px solid #1e293b; }
+        .copy-code-btn:hover { background: rgba(255,255,255,0.3); }
+        pre { background: #0f172a !important; padding: 2.5rem 1rem 1rem 1rem !important; border-radius: 10px; overflow-x: auto; border: 1px solid #1e293b; }
 
         #sidebar { transition: transform 0.4s; transform: translateX(-100%); z-index: 100; width: 280px; }
         #sidebar.open { transform: translateX(0); }
@@ -180,11 +180,17 @@
         let cCount = 0;
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        
         function createNewChat() {
             const id = Date.now().toString();
             allChats.unshift({ id, title: "Yeni Sohbet", messages: [] });
             currentChatId = id; save(); renderList(); chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI Hazır. Size nasıl yardımcı olabilirim?", false);
+            
+            const simdi = new Date();
+            const tarih = simdi.toLocaleDateString('tr-TR');
+            const saat = simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+            
+            appendMessage('ai', `**AVGAX AI Hazır.**\n\n📅 **Tarih:** ${tarih}\n⏰ **Saat:** ${saat}\n\nSize nasıl yardımcı olabilirim?`, false);
         }
 
         function appendMessage(role, text, saveMsg = true) {
@@ -192,11 +198,13 @@
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
             const div = document.createElement('div');
             div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
+            
             let htmlContent = role === 'ai' ? marked.parse(text) : text;
             
             if(role === 'ai') {
+                // Regex düzeltildi ve butonun kapsayıcısı z-index ile güçlendirildi
                 htmlContent = htmlContent.replace(/<pre><code([\s\S]*?)<\/code><\/pre>/g, (match) => {
-                    return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyThisCode(this)">Kodu Kopyala</button>${match}</div>`;
+                    return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyThisCode(this)"><i class="fa-solid fa-copy"></i> Kopyala</button>${match}</div>`;
                 });
             }
             
@@ -224,10 +232,10 @@
         }
 
         function copyThisCode(btn) {
-            const code = btn.nextElementSibling.innerText;
+            const code = btn.nextElementSibling.querySelector('code').innerText;
             navigator.clipboard.writeText(code);
-            btn.innerText = "Kopyalandı!";
-            setTimeout(() => btn.innerText = "Kodu Kopyala", 2000);
+            btn.innerHTML = "<i class='fa-solid fa-check'></i> Kopyalandı!";
+            setTimeout(() => btn.innerHTML = "<i class='fa-solid fa-copy'></i> Kopyala", 2000);
         }
 
         async function sendMessage() {
@@ -239,6 +247,9 @@
             const key = localStorage.getItem('avgax_api_key') || "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";
             const model = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
             
+            const simdi = new Date();
+            const zamanBilgisi = `\n[Sistem Bilgisi: Bugün ${simdi.toLocaleDateString('tr-TR')}, Saat ${simdi.toLocaleTimeString('tr-TR')}]`;
+
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
@@ -248,7 +259,7 @@
                     },
                     body: JSON.stringify({
                         model: model,
-                        messages: [{role: "system", content: localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın. Yapımcın Yasin Emre'dir."}].concat(allChats.find(x => x.id === currentChatId).messages),
+                        messages: [{role: "system", content: (localStorage.getItem('avgax_system_prompt') || "Sen AVGAX'sın. Yapımcın Yasin Emre'dir.") + zamanBilgisi}].concat(allChats.find(x => x.id === currentChatId).messages),
                         temperature: parseFloat(localStorage.getItem('avgax_user_temp') || 0.5)
                     })
                 });
@@ -278,4 +289,5 @@
         userInput.addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
     </script>
 </body>
-</html>
+    </html>
+    
