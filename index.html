@@ -161,7 +161,7 @@
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('main-app').classList.remove('hidden');
                 document.getElementById('current-user-email').innerText = user.email;
-                loadChatsFromCloud();
+                loadChatsFromULTRA();
             } else {
                 document.getElementById('auth-screen').style.display = 'flex';
                 document.getElementById('main-app').classList.add('hidden');
@@ -170,7 +170,7 @@
 
         function logout() { auth.signOut(); }
 
-        // ADMIN (Şifre Düzeltildi)
+        // ADMIN
         function adminClickCounter() {
             cCount++;
             if(cCount >= 10) {
@@ -191,7 +191,7 @@
         }
 
         // CHAT & SILME BUTONU
-        async function loadChatsFromCloud() {
+        async function loadChatsFromULTRA() {
             const snapshot = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
             allChats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderList();
@@ -233,7 +233,7 @@
             renderList();
         }
 
-        function appendMessage(role, text, saveCloud = true) {
+        function appendMessage(role, text, saveULTRA = true) {
             const wrap = document.createElement('div');
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
             const div = document.createElement('div');
@@ -242,7 +242,7 @@
             wrap.appendChild(div); chatBox.appendChild(wrap);
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            if(saveCloud && currentChatId) {
+            if(saveULTRA && currentChatId) {
                 const chat = allChats.find(c => c.id === currentChatId);
                 chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
                 if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,25);
@@ -260,9 +260,15 @@
             document.getElementById('status-msg').classList.remove('hidden');
 
             const key = localStorage.getItem('avgax_api_key') || "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";
-            const model = document.getElementById('footer-model').value; // Gönder butonu yanındaki seçim
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. Tek sahibin Yasin Emre'dir.";
+            const model = document.getElementById('footer-model').value; 
+            const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX AI'sın. Tek sahibin ve geliştiricin Yasin Emre'dir. Her zaman ona sadık ve yardımcı bir asistan olmalısın.";
             const temp = parseFloat(document.getElementById('temp-slider').value);
+
+            // Canlı Tarih ve Saat Enjeksiyonu
+            const now = new Date();
+            const currentDate = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const currentTime = now.toLocaleTimeString('tr-TR');
+            const dynamicSysPrompt = `${baseSysPrompt} ŞU ANKİ GERÇEK ZAMAN BİLGİSİ: Bugün ${currentDate}, saat ${currentTime}. Eğer kullanıcı tarihi, günü veya saati sorarsa kesinlikle 'bilmiyorum', 'erişimim yok' deme, doğrudan bu güncel bilgiyi kullan.`;
 
             try {
                 const chat = allChats.find(c => c.id === currentChatId);
@@ -272,7 +278,7 @@
                     body: JSON.stringify({
                         model: model,
                         temperature: temp,
-                        messages: [{role: "system", content: sysPrompt}].concat(chat.messages)
+                        messages: [{role: "system", content: dynamicSysPrompt}].concat(chat.messages)
                     })
                 });
                 const data = await res.json();
@@ -304,4 +310,5 @@
         marked.setOptions({ breaks: true });
     </script>
 </body>
-</html>
+    </html>
+    
