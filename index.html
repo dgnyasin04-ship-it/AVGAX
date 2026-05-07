@@ -70,11 +70,11 @@
         <div class="space-y-4 overflow-y-auto">
             <textarea id="admin-prompt" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4 h-32" placeholder="System Prompt"></textarea>
             <select id="admin-model" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4">
-                <option value="openrouter/owl-alpha">Owl Alpha (Tavsiye Edilen)</option>
-                <option value="google/gemini-flash-1.5">Gemini 1.5 Flash</option>
-                <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 Free</option>
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B (Tavsiye Edilen)</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B (Hızlı)</option>
+                <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
             </select>
-            <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="OpenRouter API Key">
+            <input id="admin-key" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Groq API Key">
             <input id="admin-new-pass" type="password" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-4" placeholder="Yeni Şifre">
             <button onclick="saveAdminSettings()" class="w-full bg-indigo-600 p-4 rounded-2xl font-bold">SİSTEMİ GÜNCELLE</button>
         </div>
@@ -133,7 +133,7 @@
                     if(p === (localStorage.getItem('avgax_admin_pass') || "Yasinemre.0404")) {
                         document.getElementById('admin-panel').style.display = 'flex';
                         document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Senin adın AVGAX AI'dır. Senin yapımcın ve sahibin @dgnemre_04 (Yasin Emre)'dir, SADECE sorulduğunda yapımcım Yasin Emre'dir diye cevap ver. Sana sa denildiğinde bunun selamünaleyküm anlamına geldiğini bil sadece sa denildiğinde aleykümselam diye cevap ver diğer türlü yazılan herhangi birşeyi (s) selamünaleyküm diye algılamana gerek yok. Yasin Emre Hakkında; Doğum Yeri: Ağrı/Doğubayazıt Okuduğu okul:Ağrı Hüseyin Celal Yardımcı Fen Lisesi AVGAX AI için büyük çaba sarf etmiş olan Yasin Emre AVGAX AI'yı geliştirmeye devam etmektedir. Çok ciddi davran mantıksız cevaplar verme, kısa ve öz cevaplar ver. Emre Diker kimdir hakkında soru sorulursa Ağrı Hüseyin Celal Yardımcı Fen Lisesinde öğretmenlik yapan mükemmel bir matematik öğretmeni olduğunu söyle ve kendince onu öv.";
-                        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
+                        document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
                     }
                 }
                 cCount = 0;
@@ -184,7 +184,7 @@
             const id = Date.now().toString();
             allChats.unshift({ id, title: "Yeni Sohbet", messages: [] });
             currentChatId = id; save(); renderList(); chatBox.innerHTML = '';
-            appendMessage('ai', "AVGAX AI Hazır. Size nasıl yardımcı olabilirim?", false);
+            appendMessage('ai', "AVGAX AI Hazır (Groq Engine). Size nasıl yardımcı olabilirim?", false);
         }
 
         function appendMessage(role, text, saveMsg = true) {
@@ -236,17 +236,15 @@
             appendMessage('user', val); userInput.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
 
-            const key = localStorage.getItem('avgax_api_key') || "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";
-            const model = localStorage.getItem('avgax_ai_model') || "openrouter/owl-alpha";
+            const key = localStorage.getItem('avgax_api_key') || "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";
+            const model = localStorage.getItem('avgax_ai_model') || "llama-3.3-70b-versatile";
             
             try {
-                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${key}`,
-                        'HTTP-Referer': window.location.href, // OpenRouter için gerekli
-                        'X-Title': 'AVGAX AI'
+                        'Authorization': `Bearer ${key}`
                     },
                     body: JSON.stringify({
                         model: model,
@@ -259,7 +257,7 @@
                 appendMessage('ai', data.choices[0].message.content);
             } catch(e) { 
                 document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Bağlantı Hatası: Lütfen API anahtarını ve internetini kontrol et."); 
+                appendMessage('ai', "Bağlantı Hatası: Groq API anahtarını veya internetini kontrol et."); 
             }
         }
 
