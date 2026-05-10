@@ -410,14 +410,22 @@
         document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
         marked.setOptions({ breaks: true });
 
-                async function logout() {
-            try {
-                await auth.signOut();
-                location.reload();
-            } catch (e) {
-                alert("Çıkış hatası: " + e.message);
-            }
-                }
+async function logout() {
+    try {
+        // Çıkış yapmadan önce modalı kapatıyoruz
+        const settingsModal = document.getElementById('user-settings-modal');
+        if (settingsModal) settingsModal.style.display = 'none';
+
+        // Firebase oturumunu kapat
+        await auth.signOut();
+        
+        // Tarayıcıyı yenileyerek giriş ekranına dönmesini sağla
+        window.location.reload();
+    } catch (e) {
+        console.error("Çıkış işlemi başarısız:", e);
+        alert("Çıkış yapılamadı, lütfen tekrar deneyin.");
+    }
+}
         
     </script>
 </body>
