@@ -177,12 +177,6 @@
                     const userCred = await auth.signInWithEmailAndPassword(email, pass);
                     
                     // Giriş yaparken e-posta onaylanmamışsa içeri alma
-                    if(!userCred.user.emailVerified) {
-                        alert("Lütfen e-posta adresinizi doğrulayın! Gelen kutunuzu kontrol edin.");
-                        await auth.signOut();
-                        return;
-                    }
-                }
                 else {
                     if(!username) return alert("Kullanıcı adı zorunludur!");
                     const userCred = await auth.createUserWithEmailAndPassword(email, pass);
@@ -203,7 +197,7 @@
 
 
                 auth.onAuthStateChanged(async (user) => {
-            if (user && user.emailVerified) { // Bu satırı güncelledik
+            if (user) { // Bu satırı güncelledik
                 const doc = await db.collection('users').doc(user.uid).get();
                 userData = doc.data();
                 // ... (kodun geri kalanı aynı kalıyor)
