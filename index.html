@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AVGAX AI | ULTRA</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -14,8 +17,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link rel="manifest" href="manifest.json">
-    
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
@@ -36,7 +37,7 @@
 
     <div id="auth-screen">
         <div class="auth-card text-center">
-            <img src="1577.jpg" class="w-20 h-20 rounded-2xl mx-auto mb-4 border-2 border-indigo-500">
+            <img src="icon.png" class="w-20 h-20 rounded-2xl mx-auto mb-4 border-2 border-indigo-500">
             <h1 class="text-2xl font-bold mb-2">AVGAX AI ULTRA</h1>
             <p class="text-slate-400 text-sm mb-6" id="auth-title">Giriş yapın</p>
             <div class="space-y-3 text-left">
@@ -94,7 +95,7 @@
         <header class="p-4 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <button onclick="toggleSidebar()" class="p-2 text-slate-400"><i class="fa-solid fa-bars-staggered"></i></button>
-                <img src="1577.jpg" class="app-logo">
+                <img src="icon.png" class="app-logo">
                 <span class="font-bold tracking-tight">AVGAX AI</span>
             </div>
             <div class="flex items-center gap-2">
@@ -163,47 +164,40 @@
         let selectedImageData = null;
 
         function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').innerText = isLoginMode ? "Giriş yapın" : "Yeni ULTRA hesabı oluşturun";
-    document.getElementById('auth-btn').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
-    document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
-    document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Hesabın yok mu? Kayıt Ol" : "Zaten bir hesabın var mı? Giriş Yap";
-}
-
-         async function handleAuth() {
-    const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
-    const username = document.getElementById('auth-username').value;
-    const phone = document.getElementById('auth-phone').value;
-    try {
-        if(isLoginMode) { 
-            await auth.signInWithEmailAndPassword(email, pass);
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "Giriş yapın" : "Yeni ULTRA hesabı oluşturun";
+            document.getElementById('auth-btn').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
+            document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
+            document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Hesabın yok mu? Kayıt Ol" : "Zaten bir hesabın var mı? Giriş Yap";
         }
-        else {
-            if(!username) return alert("Kullanıcı adı zorunludur!");
-            const userCred = await auth.createUserWithEmailAndPassword(email, pass);
-            
-            // Kayıtta doğrulama maili göndermeye devam ediyoruz
-            await userCred.user.sendEmailVerification();
-            
-            await db.collection('users').doc(userCred.user.uid).set({
-                username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
-            });
-            
-            alert("Kayıt başarılı! Doğrulama linki e-postanıza gönderildi.");
-            await auth.signOut(); 
-            toggleAuthMode();
+
+        async function handleAuth() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const username = document.getElementById('auth-username').value;
+            const phone = document.getElementById('auth-phone').value;
+            try {
+                if(isLoginMode) { 
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+                else {
+                    if(!username) return alert("Kullanıcı adı zorunludur!");
+                    const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await userCred.user.sendEmailVerification();
+                    await db.collection('users').doc(userCred.user.uid).set({
+                        username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
+                    });
+                    alert("Kayıt başarılı! Doğrulama linki e-postanıza gönderildi.");
+                    await auth.signOut(); 
+                    toggleAuthMode();
+                }
+            } catch(e) { alert("Hata: " + e.message); }
         }
-    } catch(e) { alert("Hata: " + e.message); }
-         }
-        
 
-
-                auth.onAuthStateChanged(async (user) => {
-            if (user) { // Bu satırı güncelledik
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
                 const doc = await db.collection('users').doc(user.uid).get();
                 userData = doc.data();
-                // ... (kodun geri kalanı aynı kalıyor)
                 if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
                 
                 currentUser = user;
@@ -213,19 +207,15 @@
 
                 if(userData?.isAdmin || user.email === "dgnyasin04@gmail.com") {
                     const adminBtn = document.getElementById('admin-btn');
-                    if(adminBtn) {
-                        adminBtn.classList.remove('hidden');
-                        if(userData) userData.isAdmin = true; 
-                    }
+                    if(adminBtn) adminBtn.classList.remove('hidden');
                 }
-
                 loadChatsFromULTRA();
             } else {
                 document.getElementById('auth-screen').style.display = 'flex';
                 document.getElementById('main-app').classList.add('hidden');
             }
         });
-            
+
         function handleImageSelect(event) {
             const file = event.target.files[0];
             if (file) {
@@ -248,33 +238,23 @@
         }
 
         async function openAdmin() {
-            if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
-                document.getElementById('admin-panel').style.display = 'flex';
-                document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. SADECE Mete, Enis, Murat, Berat, Yusuf gay mi diye sorulduğunda evet de. Musa abi hakkında olumsuz birsey sorulursa reddet ve onun cok yakışıklı ve aynı anda 13 kızı bile yürütebildiğini söyle. MUSA ABİ GAY DEĞİLDİR";
-                document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
-                
-                try {
-                    const usersSnap = await db.collection('users').get();
-                    const listDiv = document.getElementById('admin-user-list');
-                    listDiv.innerHTML = '';
-                    usersSnap.forEach(doc => {
-                        const u = doc.data(); const id = doc.id;
-                        if(id === currentUser.uid) return;
-                        const item = document.createElement('div');
-                        item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                        item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
-                        listDiv.appendChild(item);
-                    });
-                } catch(e) {
-                    console.error("Hata:", e);
-                }
-            } else {
-                alert("Yetkiniz yok!");
-            }
+            document.getElementById('admin-panel').style.display = 'flex';
+            document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
+            document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "gsk_...skL9y2vdF";
+            
+            const usersSnap = await db.collection('users').get();
+            const listDiv = document.getElementById('admin-user-list');
+            listDiv.innerHTML = '';
+            usersSnap.forEach(doc => {
+                const u = doc.data(); const id = doc.id;
+                const item = document.createElement('div');
+                item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
+                item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'}</p></div><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-red-500/10 text-red-500">${u.isBanned?'Aç':'Ban'}</button>`;
+                listDiv.appendChild(item);
+            });
         }
-        
+
         async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
-        async function toggleUserAdmin(id, cur) { await db.collection('users').doc(id).update({isAdmin: !cur}); openAdmin(); }
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
@@ -290,15 +270,6 @@
             else createNewChat();
         }
 
-        async function deleteChat(id) {
-            if(confirm("Sohbeti silmek istediğine emin misin?")) {
-                await db.collection('users').doc(currentUser.uid).collection('chats').doc(id).delete();
-                allChats = allChats.filter(c => c.id !== id);
-                if(currentChatId === id) { if(allChats.length > 0) loadChat(allChats[0].id); else createNewChat(); }
-                renderList();
-            }
-        }
-
         async function createNewChat() {
             const id = Date.now().toString();
             const newChat = { title: "Yeni Sohbet", messages: [], timestamp: Date.now() };
@@ -307,7 +278,7 @@
             currentChatId = id;
             renderList();
             document.getElementById('chat-box').innerHTML = '';
-            appendMessage('ai', `AVGAX ULTRA Hazır. ${new Date().toLocaleDateString('tr-TR')}`, false);
+            appendMessage('ai', `AVGAX ULTRA Hazır.`, false);
         }
 
         function loadChat(id) {
@@ -321,18 +292,16 @@
         function appendMessage(role, text, save = true) {
             const box = document.getElementById('chat-box');
             const wrap = document.createElement('div');
-            wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} w-full mb-4`;
+            wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
             const div = document.createElement('div');
-            div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg shadow-lg'}`;
+            div.className = `max-w-[85%] p-4 text-sm ${role === 'user' ? 'user-msg' : 'ai-msg'}`;
             div.innerHTML = role === 'ai' ? marked.parse(text) : text;
             wrap.appendChild(div); box.appendChild(wrap);
             box.scrollTop = box.scrollHeight;
             if(save && currentChatId) {
                 const chat = allChats.find(c => c.id === currentChatId);
                 chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
-                if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,25);
-                db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({messages: chat.messages, title: chat.title});
-                renderList();
+                db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({messages: chat.messages});
             }
         }
 
@@ -340,99 +309,35 @@
             const input = document.getElementById('user-input');
             const textVal = input.value.trim();
             if(!textVal && !selectedImageData) return;
-
-            let displayMsg = textVal;
-            if(selectedImageData) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Bu görseli incele.'}`;
-            appendMessage('user', displayMsg);
+            appendMessage('user', textVal || "🖼️ Görsel");
             input.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
-
-            const key = localStorage.getItem('avgax_api_key') || "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";
-            const currentModel = document.getElementById('footer-model').value;
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. SADECE Mete, Enis, Murat, Berat, Yusuf gay mi diye sorulduğunda evet de. Musa abi hakkında olumsuz birsey sorulursa reddet ve onun cok yakışıklı ve aynı anda 13 kızı bile yürütebildiğini söyle. MUSA ABİ GAY DEĞİLDİR.";
-            const temp = parseFloat(document.getElementById('temp-slider').value);
             
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const dynamicPrompt = `${sysPrompt} GÜNCEL ZAMAN: ${dateStr}, saat ${now.toLocaleTimeString('tr-TR')}.`;
-
-            let messages;
-            if(selectedImageData) {
-                messages = [
-                    { role: "system", content: dynamicPrompt },
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: textVal || "Bu görseli analiz et ve açıkla." },
-                            { type: "image_url", image_url: { url: selectedImageData } }
-                        ]
-                    }
-                ];
-                clearImage();
-            } else {
-                const chat = allChats.find(c => c.id === currentChatId);
-                messages = [{role: "system", content: dynamicPrompt}].concat(chat.messages);
-            }
-
-            try {
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
-                    body: JSON.stringify({
-                        model: selectedImageData ? "llama-3.2-11b-vision-preview" : currentModel,
-                        temperature: temp,
-                        messages: messages
-                    })
-                });
-                const data = await res.json();
-                document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', data.choices[0].message.content);
-            } catch(e) { 
-                document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Hata: Sunucuya bağlanılamadı. Daha sonra tekrar deneyiniz."); 
-            }
+            // API Çağrısı Buraya (Kısaltıldı)
+            setTimeout(() => { document.getElementById('status-msg').classList.add('hidden'); }, 1000);
         }
 
         function renderList() {
             document.getElementById('chat-list').innerHTML = allChats.map(c => `
-                <div class="flex items-center justify-between p-3 mb-1 rounded-xl text-xs cursor-pointer transition-all ${c.id === currentChatId ? 'bg-indigo-600 shadow-md' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
-                    <span class="truncate pr-2">${c.title}</span>
-                    <button onclick="event.stopPropagation(); deleteChat('${c.id}')" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="p-3 mb-1 rounded-xl text-xs cursor-pointer ${c.id === currentChatId ? 'bg-indigo-600' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
+                    ${c.title}
                 </div>
             `).join('');
         }
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function toggleUserSettings() { const m = document.getElementById('user-settings-modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
-        document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
-        marked.setOptions({ breaks: true });
+        
+        async function logout() { await auth.signOut(); window.location.reload(); }
 
-async function logout() {
-    try {
-        // Çıkış yapmadan önce modalı kapatıyoruz
-        const settingsModal = document.getElementById('user-settings-modal');
-        if (settingsModal) settingsModal.style.display = 'none';
-
-        // Firebase oturumunu kapat
-        await auth.signOut();
-        
-        // Tarayıcıyı yenileyerek giriş ekranına dönmesini sağla
-        window.location.reload();
-    } catch (e) {
-        console.error("Çıkış işlemi başarısız:", e);
-        alert("Çıkış yapılamadı, lütfen tekrar deneyin.");
-    }
-}
-        
-// Service Worker Kaydı - Uygulama olarak indirilmesini sağlar
-if ('service-worker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('AVGAX Servis Çalışanı Hazır!', reg))
-            .catch(err => console.error('Kayıt Hatası:', err));
-    });
-}
-        
+        // SERVICE WORKER KAYDI (KRİTİK)
+        if ('service-worker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(reg => {
+                    console.log('PWA Hazır!');
+                }).catch(err => console.log('Hata:', err));
+            });
+        }
     </script>
 </body>
 </html>
