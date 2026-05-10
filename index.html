@@ -167,22 +167,40 @@
             document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
         }
 
-        async function handleAuth() {
+                async function handleAuth() {
             const email = document.getElementById('auth-email').value;
             const pass = document.getElementById('auth-pass').value;
             const username = document.getElementById('auth-username').value;
             const phone = document.getElementById('auth-phone').value;
             try {
-                if(isLoginMode) { await auth.signInWithEmailAndPassword(email, pass); }
+                if(isLoginMode) { 
+                    const userCred = await auth.signInWithEmailAndPassword(email, pass);
+                    
+                    // Giriş yaparken e-posta onaylanmamışsa içeri alma
+                    if(!userCred.user.emailVerified) {
+                        alert("Lütfen e-posta adresinizi doğrulayın! Gelen kutunuzu kontrol edin.");
+                        await auth.signOut();
+                        return;
+                    }
+                }
                 else {
                     if(!username) return alert("Kullanıcı adı zorunludur!");
                     const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+                    
+                    // E-posta doğrulama mailini gönderen kritik satır:
+                    await userCred.user.sendEmailVerification();
+                    
                     await db.collection('users').doc(userCred.user.uid).set({
                         username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
                     });
+                    
+                    alert("Kayıt başarılı! Doğrulama linki e-postanıza gönderildi. Onayladıktan sonra giriş yapın.");
+                    await auth.signOut(); 
+                    toggleAuthMode();
                 }
             } catch(e) { alert("Hata: " + e.message); }
         }
+
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
