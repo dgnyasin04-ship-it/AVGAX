@@ -409,6 +409,16 @@
         function toggleUserSettings() { const m = document.getElementById('user-settings-modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
         document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
         marked.setOptions({ breaks: true });
+
+                async function logout() {
+            try {
+                await auth.signOut();
+                location.reload();
+            } catch (e) {
+                alert("Çıkış hatası: " + e.message);
+            }
+                }
+        
     </script>
 </body>
 </html>
