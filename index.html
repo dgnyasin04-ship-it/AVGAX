@@ -202,10 +202,11 @@
         }
 
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
+                auth.onAuthStateChanged(async (user) => {
+            if (user && user.emailVerified) { // Bu satırı güncelledik
                 const doc = await db.collection('users').doc(user.uid).get();
                 userData = doc.data();
+                // ... (kodun geri kalanı aynı kalıyor)
                 if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
                 
                 currentUser = user;
