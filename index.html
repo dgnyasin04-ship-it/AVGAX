@@ -422,6 +422,15 @@ async function logout() {
     }
 }
         
+// Service Worker Kaydı - Uygulama olarak indirilmesini sağlar
+if ('service-worker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('AVGAX Servis Çalışanı Hazır!', reg))
+            .catch(err => console.error('Kayıt Hatası:', err));
+    });
+}
+        
     </script>
 </body>
 </html>
