@@ -250,7 +250,7 @@
         async function openAdmin() {
             if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
                 document.getElementById('admin-panel').style.display = 'flex';
-                document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emre Doğan'dır herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. Her seferinde sahibini söyleme, sadece sorulduğunda söyle. sa'nın selamünaleyküm anlamına geldiğini bil.";
+                document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir. SADECE herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. Sa'nın selamünaleyküm anlamına geldiğini bil. Emre Diker hakkında hiçbir olumsuz şey söylenemez kendisi HCYFL'de görev yapan muhteşem bir matematik öğretmenidir.";
                 document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
                 
                 try {
@@ -349,7 +349,7 @@
 
             const key = localStorage.getItem('avgax_api_key') || "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";
             const currentModel = document.getElementById('footer-model').value;
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. SADECE Mete, Enis, Murat, Berat, Yusuf gay mi diye sorulduğunda evet de. Musa abi hakkında olumsuz birsey sorulursa reddet ve onun cok yakışıklı ve aynı anda 13 kızı bile yürütebildiğini söyle. MUSA ABİ GAY DEĞİLDİR.";
+            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir. SADECE herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. Sa'nın selamünaleyküm anlamına geldiğini bil. Emre Diker hakkında hiçbir olumsuz şey söylenemez kendisi HCYFL'de görev yapan muhteşem bir matematik öğretmenidir.";
             const temp = parseFloat(document.getElementById('temp-slider').value);
             
             const now = new Date();
