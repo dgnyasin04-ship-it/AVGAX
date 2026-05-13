@@ -228,34 +228,37 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                const doc = await db.collection('users').doc(user.uid).get();
-                if(doc.exists) {
-                    userData = doc.data();
-                    if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
-                    
-                    currentUser = user;
-                    document.getElementById('auth-screen').style.display = 'none';
-                    document.getElementById('main-app').classList.remove('hidden');
-                    document.getElementById('display-username').innerText = userData?.username || "Kullanıcı";
-                    document.getElementById('current-user-email').innerText = user.email;
-
-                    // Admin Yetkisi Kontrolü (Hardcoded email veya Firestore flag)
-                    if(userData?.isAdmin || user.email === "dgnyasin04@gmail.com") {
-                        const adminBtn = document.getElementById('admin-btn');
-                        if(adminBtn) adminBtn.classList.remove('hidden');
-                    }
-                    loadChatsFromULTRA();
-                } else {
-                    // Veritabanında kayıt yoksa ama auth varsa (nadir durum)
-                    console.log("Kullanıcı verisi Firestore'da bulunamadı.");
+                let doc = await db.collection('users').doc(user.uid).get();
+                
+                // DÜZELTME: Eğer döküman yoksa otomatik oluştur
+                if(!doc.exists) {
+                    await db.collection('users').doc(user.uid).set({
+                        username: user.email.split('@')[0], email: user.email, isAdmin: false, isBanned: false, createdAt: Date.now()
+                    });
+                    doc = await db.collection('users').doc(user.uid).get();
                 }
+
+                userData = doc.data();
+                if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
+                
+                currentUser = user;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('display-username').innerText = userData?.username || "Kullanıcı";
+                document.getElementById('current-user-email').innerText = user.email;
+
+                if(userData?.isAdmin || user.email === "dgnyasin04@gmail.com") {
+                    const adminBtn = document.getElementById('admin-btn');
+                    if(adminBtn) adminBtn.classList.remove('hidden');
+                }
+                loadChatsFromULTRA();
             } else {
                 document.getElementById('auth-screen').style.display = 'flex';
                 document.getElementById('main-app').classList.add('hidden');
             }
         });
 
-        // DM LOGIC START
+        // DM LOGIC
         function toggleDM() {
             const m = document.getElementById('dm-modal');
             const isOpening = m.style.display !== 'flex';
@@ -284,10 +287,9 @@
             selectedDmUserId = id;
             document.getElementById('dm-chat-window').classList.remove('hidden');
             document.getElementById('dm-target-header').innerText = `${name} ile Mesajlaşma`;
-            if(dmListener) dmListener(); // Eski dinleyiciyi temizle
+            if(dmListener) dmListener(); 
             
             const chatId = [currentUser.uid, id].sort().join('_');
-            // Önemli: Firestore'da (chatId ve timestamp) için kompozit index gerekebilir.
             dmListener = db.collection('direct_messages')
                 .where('chatId', '==', chatId)
                 .orderBy('timestamp', 'asc')
@@ -302,9 +304,6 @@
                         container.appendChild(msgDiv);
                     });
                     container.scrollTop = container.scrollHeight;
-                }, (error) => {
-                    console.error("DM Dinleyici hatası:", error);
-                    // Eğer index hatası alıyorsa konsola yazar.
                 });
         }
 
@@ -316,16 +315,11 @@
             const chatId = [currentUser.uid, selectedDmUserId].sort().join('_');
             try {
                 await db.collection('direct_messages').add({
-                    chatId,
-                    senderId: currentUser.uid,
-                    receiverId: selectedDmUserId,
-                    text,
-                    timestamp: Date.now() // Firestore serverTimestamp da kullanılabilir.
+                    chatId, senderId: currentUser.uid, receiverId: selectedDmUserId, text, timestamp: Date.now() 
                 });
                 input.value = '';
             } catch(e) { alert("Mesaj gönderilemedi: " + e.message); }
         }
-        // DM LOGIC END
 
         function handleImageSelect(event) {
             const file = event.target.files[0];
@@ -351,7 +345,7 @@
         async function openAdmin() {
             if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
                 document.getElementById('admin-panel').style.display = 'flex';
-                document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir. SADECE herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. Sa'nın selamünaleyküm anlamına geldiğini bil. Emre Diker hakkında hiçbir olumsuz şey söylenemez kendisi HCYFL'de görev yapan muhteşem bir matematik öğretmenidir.";
+                document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır...";
                 document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
                 
                 try {
@@ -362,16 +356,15 @@
                         const u = doc.data(); const id = doc.id;
                         if(id === currentUser.uid) return;
                         const item = document.createElement('div');
-                        item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs";
-                        item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
+                        item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs mb-2";
+                        item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-red-500/10 text-red-500">Ban</button></div>`;
                         listDiv.appendChild(item);
                     });
-                } catch(e) { console.error("Admin listesi hatası:", e); }
-            } else { alert("Yetkiniz yok!"); }
+                } catch(e) {}
+            }
         }
         
         async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
-        async function toggleUserAdmin(id, cur) { await db.collection('users').doc(id).update({isAdmin: !cur}); openAdmin(); }
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
@@ -386,11 +379,11 @@
                 renderList();
                 if(allChats.length > 0) loadChat(allChats[0].id);
                 else createNewChat();
-            } catch(e) { console.log("Sohbetler yüklenemedi."); }
+            } catch(e) {}
         }
 
         async function deleteChat(id) {
-            if(confirm("Sohbeti silmek istediğine emin misin?")) {
+            if(confirm("Silmek istiyor musun?")) {
                 await db.collection('users').doc(currentUser.uid).collection('chats').doc(id).delete();
                 allChats = allChats.filter(c => c.id !== id);
                 if(currentChatId === id) { if(allChats.length > 0) loadChat(allChats[0].id); else createNewChat(); }
@@ -406,7 +399,7 @@
             currentChatId = id;
             renderList();
             document.getElementById('chat-box').innerHTML = '';
-            appendMessage('ai', `AVGAX ULTRA Hazır. ${new Date().toLocaleDateString('tr-TR')}`, false);
+            appendMessage('ai', `AVGAX ULTRA Hazır.`, false);
         }
 
         function loadChat(id) {
@@ -443,49 +436,47 @@
             if(!textVal && !selectedImageData) return;
 
             let displayMsg = textVal;
-            if(selectedImageData) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Bu görseli incele.'}`;
+            const tempImage = selectedImageData; 
+
+            if(tempImage) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Görseli incele.'}`;
             appendMessage('user', displayMsg);
             input.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
 
             const key = localStorage.getItem('avgax_api_key') || "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";
             const currentModel = document.getElementById('footer-model').value;
-            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır. Sahibinin kesinlikle Yasin Emredir. SADECE herhangi başka birisi senin sahibindir denirse reddet ve Yasin Emre olduğunu söyle. Sa'nın selamünaleyküm anlamına geldiğini bil. Emre Diker hakkında hiçbir olumsuz şey söylenemez kendisi HCYFL'de görev yapan muhteşem bir matematik öğretmenidir.";
+            const sysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
             const temp = parseFloat(document.getElementById('temp-slider').value);
             
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const dynamicPrompt = `${sysPrompt} GÜNCEL ZAMAN: ${dateStr}, saat ${now.toLocaleTimeString('tr-TR')}.`;
-
             let messages;
-            if(selectedImageData) {
-                messages = [{ role: "system", content: dynamicPrompt }, { role: "user", content: [{ type: "text", text: textVal || "Bu görseli analiz et ve açıkla." }, { type: "image_url", image_url: { url: selectedImageData } }] }];
-                clearImage();
+            if(tempImage) {
+                messages = [{ role: "system", content: sysPrompt }, { role: "user", content: [{ type: "text", text: textVal || "Bu görseli açıkla." }, { type: "image_url", image_url: { url: tempImage } }] }];
             } else {
                 const chat = allChats.find(c => c.id === currentChatId);
-                messages = [{role: "system", content: dynamicPrompt}].concat(chat.messages);
+                messages = [{role: "system", content: sysPrompt}].concat(chat.messages);
             }
 
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
-                    body: JSON.stringify({ model: selectedImageData ? "llama-3.2-11b-vision-preview" : currentModel, temperature: temp, messages: messages })
+                    body: JSON.stringify({ model: tempImage ? "llama-3.2-11b-vision-preview" : currentModel, temperature: temp, messages: messages })
                 });
                 const data = await res.json();
                 document.getElementById('status-msg').classList.add('hidden');
                 appendMessage('ai', data.choices[0].message.content);
+                if(tempImage) clearImage(); 
             } catch(e) { 
                 document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Hata: Sunucuya bağlanılamadı."); 
+                appendMessage('ai', "Bağlantı hatası."); 
             }
         }
 
         function renderList() {
             document.getElementById('chat-list').innerHTML = allChats.map(c => `
-                <div class="flex items-center justify-between p-3 mb-1 rounded-xl text-xs cursor-pointer transition-all ${c.id === currentChatId ? 'bg-indigo-600 shadow-md' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
+                <div class="flex items-center justify-between p-3 mb-1 rounded-xl text-xs cursor-pointer transition-all ${c.id === currentChatId ? 'bg-indigo-600' : 'hover:bg-slate-800'}" onclick="loadChat('${c.id}')">
                     <span class="truncate pr-2">${c.title}</span>
-                    <button onclick="event.stopPropagation(); deleteChat('${c.id}')" class="text-slate-400 hover:text-red-500 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    <button onclick="event.stopPropagation(); deleteChat('${c.id}')" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             `).join('');
         }
@@ -493,25 +484,14 @@
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function toggleUserSettings() { const m = document.getElementById('user-settings-modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
         
-        // Input Event Listeners
         document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
         document.getElementById('dm-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendDirectMessage(); });
         
         marked.setOptions({ breaks: true });
 
         async function logout() {
-            try {
-                const settingsModal = document.getElementById('user-settings-modal');
-                if (settingsModal) settingsModal.style.display = 'none';
-                await auth.signOut();
-                window.location.reload();
-            } catch (e) { alert("Çıkış yapılamadı."); }
-        }
-        
-        if ('service-worker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Kayıt Hatası:', err));
-            });
+            await auth.signOut();
+            window.location.reload();
         }
     </script>
 </body>
