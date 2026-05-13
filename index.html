@@ -27,12 +27,10 @@
         .auth-card { background: #0f172a; border: 1px solid #1e293b; padding: 2rem; border-radius: 24px; width: 100%; max-width: 400px; }
         #sidebar { transition: transform 0.4s; transform: translateX(-100%); z-index: 100; width: 280px; }
         #sidebar.open { transform: translateX(0); }
-        #admin-panel, #user-settings-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 11000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
+        #admin-panel, #user-settings-modal, #dm-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 11000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
         .app-logo { width: 42px; height: 42px; border-radius: 10px; object-fit: cover; }
         .preview-img { max-height: 100px; border-radius: 10px; border: 2px solid #2563eb; }
-    
-        #dm-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 12000; display: none; flex-direction: column; padding: 2rem; backdrop-filter: blur(15px); }
-        .dm-bubble { max-width: 80%; padding: 10px 14px; border-radius: 15px; font-size: 13px; margin-bottom: 8px; }
+        .dm-bubble { max-width: 80%; padding: 10px 14px; border-radius: 15px; font-size: 13px; margin-bottom: 8px; word-wrap: break-word; }
         .dm-sent { background: #4f46e5; align-self: flex-end; border-radius: 15px 15px 2px 15px; }
         .dm-received { background: #1e293b; align-self: flex-start; border-radius: 15px 15px 15px 2px; border: 1px solid #334155; }
     </style>
@@ -128,6 +126,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <button id="admin-btn" onclick="openAdmin()" class="hidden p-3 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20"><i class="fa-solid fa-user-shield"></i></button>
+                <!-- DM BUTTON -->
                 <button onclick="toggleDM()" class="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20"><i class="fa-solid fa-comments"></i></button>
                 <button onclick="toggleUserSettings()" class="p-3 bg-slate-800/50 rounded-xl text-slate-400"><i class="fa-solid fa-sliders"></i></button>
             </div>
@@ -191,11 +190,72 @@
         let allChats = [];
         let currentChatId = null;
         let selectedImageData = null;
-
+        
         // DM State
         let selectedDmUserId = null;
         let dmListener = null;
 
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "Giriş yapın" : "Yeni ULTRA hesabı oluşturun";
+            document.getElementById('auth-btn').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
+            document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
+            document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Hesabın yok mu? Kayıt Ol" : "Zaten bir hesabın var mı? Giriş Yap";
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const username = document.getElementById('auth-username').value;
+            const phone = document.getElementById('auth-phone').value;
+            try {
+                if(isLoginMode) { 
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+                else {
+                    if(!username) return alert("Kullanıcı adı zorunludur!");
+                    const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+                    await userCred.user.sendEmailVerification();
+                    await db.collection('users').doc(userCred.user.uid).set({
+                        username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
+                    });
+                    alert("Kayıt başarılı! Doğrulama linki e-postanıza gönderildi.");
+                    await auth.signOut(); 
+                    toggleAuthMode();
+                }
+            } catch(e) { alert("Hata: " + e.message); }
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if(doc.exists) {
+                    userData = doc.data();
+                    if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
+                    
+                    currentUser = user;
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('main-app').classList.remove('hidden');
+                    document.getElementById('display-username').innerText = userData?.username || "Kullanıcı";
+                    document.getElementById('current-user-email').innerText = user.email;
+
+                    // Admin Yetkisi Kontrolü (Hardcoded email veya Firestore flag)
+                    if(userData?.isAdmin || user.email === "dgnyasin04@gmail.com") {
+                        const adminBtn = document.getElementById('admin-btn');
+                        if(adminBtn) adminBtn.classList.remove('hidden');
+                    }
+                    loadChatsFromULTRA();
+                } else {
+                    // Veritabanında kayıt yoksa ama auth varsa (nadir durum)
+                    console.log("Kullanıcı verisi Firestore'da bulunamadı.");
+                }
+            } else {
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        });
+
+        // DM LOGIC START
         function toggleDM() {
             const m = document.getElementById('dm-modal');
             const isOpening = m.style.display !== 'flex';
@@ -204,27 +264,30 @@
         }
 
         async function loadDMUsers() {
-            const snap = await db.collection('users').get();
-            const container = document.getElementById('dm-users-container');
-            container.innerHTML = '';
-            snap.forEach(doc => {
-                if(doc.id === currentUser.uid) return;
-                const user = doc.data();
-                const div = document.createElement('div');
-                div.className = "p-3 bg-slate-800/50 rounded-xl text-xs cursor-pointer hover:bg-indigo-600/20 border border-slate-700 transition-all";
-                div.innerHTML = `<p class="font-bold">${user.username || 'Kullanıcı'}</p><p class="text-[10px] text-slate-500">${user.email}</p>`;
-                div.onclick = () => selectDMUser(doc.id, user.username || 'Kullanıcı');
-                container.appendChild(div);
-            });
+            try {
+                const snap = await db.collection('users').get();
+                const container = document.getElementById('dm-users-container');
+                container.innerHTML = '';
+                snap.forEach(doc => {
+                    if(doc.id === currentUser.uid) return;
+                    const u = doc.data();
+                    const div = document.createElement('div');
+                    div.className = "p-3 bg-slate-800/50 rounded-xl text-xs cursor-pointer hover:bg-indigo-600/20 border border-slate-700 transition-all";
+                    div.innerHTML = `<p class="font-bold">${u.username || 'Adsız Kullanıcı'}</p><p class="text-[10px] text-slate-500">${u.email}</p>`;
+                    div.onclick = () => selectDMUser(doc.id, u.username || 'Kullanıcı');
+                    container.appendChild(div);
+                });
+            } catch(e) { console.error("Kullanıcılar yüklenemedi:", e); }
         }
 
         function selectDMUser(id, name) {
             selectedDmUserId = id;
             document.getElementById('dm-chat-window').classList.remove('hidden');
             document.getElementById('dm-target-header').innerText = `${name} ile Mesajlaşma`;
-            if(dmListener) dmListener(); 
+            if(dmListener) dmListener(); // Eski dinleyiciyi temizle
             
             const chatId = [currentUser.uid, id].sort().join('_');
+            // Önemli: Firestore'da (chatId ve timestamp) için kompozit index gerekebilir.
             dmListener = db.collection('direct_messages')
                 .where('chatId', '==', chatId)
                 .orderBy('timestamp', 'asc')
@@ -239,6 +302,9 @@
                         container.appendChild(msgDiv);
                     });
                     container.scrollTop = container.scrollHeight;
+                }, (error) => {
+                    console.error("DM Dinleyici hatası:", error);
+                    // Eğer index hatası alıyorsa konsola yazar.
                 });
         }
 
@@ -248,83 +314,19 @@
             if(!text || !selectedDmUserId) return;
             
             const chatId = [currentUser.uid, selectedDmUserId].sort().join('_');
-            await db.collection('direct_messages').add({
-                chatId,
-                senderId: currentUser.uid,
-                receiverId: selectedDmUserId,
-                text,
-                timestamp: Date.now()
-            });
-            input.value = '';
+            try {
+                await db.collection('direct_messages').add({
+                    chatId,
+                    senderId: currentUser.uid,
+                    receiverId: selectedDmUserId,
+                    text,
+                    timestamp: Date.now() // Firestore serverTimestamp da kullanılabilir.
+                });
+                input.value = '';
+            } catch(e) { alert("Mesaj gönderilemedi: " + e.message); }
         }
-        
-        document.getElementById('dm-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendDirectMessage(); });
+        // DM LOGIC END
 
-
-        function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').innerText = isLoginMode ? "Giriş yapın" : "Yeni ULTRA hesabı oluşturun";
-    document.getElementById('auth-btn').innerText = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
-    document.getElementById('register-fields').classList.toggle('hidden', isLoginMode);
-    document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Hesabın yok mu? Kayıt Ol" : "Zaten bir hesabın var mı? Giriş Yap";
-}
-
-         async function handleAuth() {
-    const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
-    const username = document.getElementById('auth-username').value;
-    const phone = document.getElementById('auth-phone').value;
-    try {
-        if(isLoginMode) { 
-            await auth.signInWithEmailAndPassword(email, pass);
-        }
-        else {
-            if(!username) return alert("Kullanıcı adı zorunludur!");
-            const userCred = await auth.createUserWithEmailAndPassword(email, pass);
-            
-            // Kayıtta doğrulama maili göndermeye devam ediyoruz
-            await userCred.user.sendEmailVerification();
-            
-            await db.collection('users').doc(userCred.user.uid).set({
-                username: username, phone: phone || "Belirtilmedi", email: email, isAdmin: false, isBanned: false, createdAt: Date.now()
-            });
-            
-            alert("Kayıt başarılı! Doğrulama linki e-postanıza gönderildi.");
-            await auth.signOut(); 
-            toggleAuthMode();
-        }
-    } catch(e) { alert("Hata: " + e.message); }
-         }
-        
-
-
-                auth.onAuthStateChanged(async (user) => {
-            if (user) { // Bu satırı güncelledik
-                const doc = await db.collection('users').doc(user.uid).get();
-                userData = doc.data();
-                // ... (kodun geri kalanı aynı kalıyor)
-                if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
-                
-                currentUser = user;
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('display-username').innerText = userData?.username || "Kullanıcı";
-
-                if(userData?.isAdmin || user.email === "dgnyasin04@gmail.com") {
-                    const adminBtn = document.getElementById('admin-btn');
-                    if(adminBtn) {
-                        adminBtn.classList.remove('hidden');
-                        if(userData) userData.isAdmin = true; 
-                    }
-                }
-
-                loadChatsFromULTRA();
-            } else {
-                document.getElementById('auth-screen').style.display = 'flex';
-                document.getElementById('main-app').classList.add('hidden');
-            }
-        });
-            
         function handleImageSelect(event) {
             const file = event.target.files[0];
             if (file) {
@@ -364,12 +366,8 @@
                         item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-${u.isBanned?'green':'red'}-500/10 text-${u.isBanned?'green':'red'}-500 border border-${u.isBanned?'green':'red'}-500/20">${u.isBanned?'Aç':'Ban'}</button><button onclick="toggleUserAdmin('${id}',${u.isAdmin})" class="p-2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Yetki</button></div>`;
                         listDiv.appendChild(item);
                     });
-                } catch(e) {
-                    console.error("Hata:", e);
-                }
-            } else {
-                alert("Yetkiniz yok!");
-            }
+                } catch(e) { console.error("Admin listesi hatası:", e); }
+            } else { alert("Yetkiniz yok!"); }
         }
         
         async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
@@ -382,11 +380,13 @@
         }
 
         async function loadChatsFromULTRA() {
-            const snap = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
-            allChats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderList();
-            if(allChats.length > 0) loadChat(allChats[0].id);
-            else createNewChat();
+            try {
+                const snap = await db.collection('users').doc(currentUser.uid).collection('chats').orderBy('timestamp', 'desc').get();
+                allChats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderList();
+                if(allChats.length > 0) loadChat(allChats[0].id);
+                else createNewChat();
+            } catch(e) { console.log("Sohbetler yüklenemedi."); }
         }
 
         async function deleteChat(id) {
@@ -412,6 +412,7 @@
         function loadChat(id) {
             currentChatId = id;
             const chat = allChats.find(c => c.id === id);
+            if(!chat) return;
             document.getElementById('chat-box').innerHTML = '';
             chat.messages.forEach(m => appendMessage(m.role === 'assistant' ? 'ai' : 'user', m.content, false));
             renderList();
@@ -428,6 +429,7 @@
             box.scrollTop = box.scrollHeight;
             if(save && currentChatId) {
                 const chat = allChats.find(c => c.id === currentChatId);
+                if(!chat) return;
                 chat.messages.push({role: role === 'ai' ? 'assistant' : 'user', content: text});
                 if(role === 'user' && chat.title === "Yeni Sohbet") chat.title = text.substring(0,25);
                 db.collection('users').doc(currentUser.uid).collection('chats').doc(currentChatId).update({messages: chat.messages, title: chat.title});
@@ -457,16 +459,7 @@
 
             let messages;
             if(selectedImageData) {
-                messages = [
-                    { role: "system", content: dynamicPrompt },
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: textVal || "Bu görseli analiz et ve açıkla." },
-                            { type: "image_url", image_url: { url: selectedImageData } }
-                        ]
-                    }
-                ];
+                messages = [{ role: "system", content: dynamicPrompt }, { role: "user", content: [{ type: "text", text: textVal || "Bu görseli analiz et ve açıkla." }, { type: "image_url", image_url: { url: selectedImageData } }] }];
                 clearImage();
             } else {
                 const chat = allChats.find(c => c.id === currentChatId);
@@ -477,18 +470,14 @@
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
-                    body: JSON.stringify({
-                        model: selectedImageData ? "llama-3.2-11b-vision-preview" : currentModel,
-                        temperature: temp,
-                        messages: messages
-                    })
+                    body: JSON.stringify({ model: selectedImageData ? "llama-3.2-11b-vision-preview" : currentModel, temperature: temp, messages: messages })
                 });
                 const data = await res.json();
                 document.getElementById('status-msg').classList.add('hidden');
                 appendMessage('ai', data.choices[0].message.content);
             } catch(e) { 
                 document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Hata: Sunucuya bağlanılamadı. Daha sonra tekrar deneyiniz."); 
+                appendMessage('ai', "Hata: Sunucuya bağlanılamadı."); 
             }
         }
 
@@ -503,35 +492,27 @@
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
         function toggleUserSettings() { const m = document.getElementById('user-settings-modal'); m.style.display = (m.style.display === 'flex') ? 'none' : 'flex'; }
+        
+        // Input Event Listeners
         document.getElementById('user-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendMessage(); });
+        document.getElementById('dm-input').addEventListener("keypress", (e) => { if(e.key === 'Enter') sendDirectMessage(); });
+        
         marked.setOptions({ breaks: true });
 
-async function logout() {
-    try {
-        // Çıkış yapmadan önce modalı kapatıyoruz
-        const settingsModal = document.getElementById('user-settings-modal');
-        if (settingsModal) settingsModal.style.display = 'none';
-
-        // Firebase oturumunu kapat
-        await auth.signOut();
+        async function logout() {
+            try {
+                const settingsModal = document.getElementById('user-settings-modal');
+                if (settingsModal) settingsModal.style.display = 'none';
+                await auth.signOut();
+                window.location.reload();
+            } catch (e) { alert("Çıkış yapılamadı."); }
+        }
         
-        // Tarayıcıyı yenileyerek giriş ekranına dönmesini sağla
-        window.location.reload();
-    } catch (e) {
-        console.error("Çıkış işlemi başarısız:", e);
-        alert("Çıkış yapılamadı, lütfen tekrar deneyin.");
-    }
-}
-        
-// Service Worker Kaydı - Uygulama olarak indirilmesini sağlar
-if ('service-worker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('AVGAX Servis Çalışanı Hazır!', reg))
-            .catch(err => console.error('Kayıt Hatası:', err));
-    });
-}
-        
+        if ('service-worker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW Kayıt Hatası:', err));
+            });
+        }
     </script>
 </body>
 </html>
