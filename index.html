@@ -530,52 +530,87 @@
             }
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const textVal = input.value.trim();
-            if(!textVal && !selectedImageData) return;
+    async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const textVal = input.value.trim();
+    if(!textVal && !selectedImageData) return;
 
-            let displayMsg = textVal;
-            const tempImage = selectedImageData; 
+    let displayMsg = textVal;
+    const tempImage = selectedImageData; 
 
-            if(tempImage) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Görseli incele.'}`;
-            appendMessage('user', displayMsg);
-            input.value = '';
-            document.getElementById('status-msg').classList.remove('hidden');
+    if(tempImage) displayMsg = `🖼️ [Görsel Paylaşıldı] ${textVal || 'Görseli incele.'}`;
+    appendMessage('user', displayMsg);
+    input.value = '';
+    document.getElementById('status-msg').classList.remove('hidden');
 
-            const key = localStorage.getItem('avgax_api_key') || "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";
-            const currentModel = document.getElementById('footer-model').value;
-            const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
-            const temp = parseFloat(document.getElementById('temp-slider').value);
-            
-            const now = new Date();
-            const dateString = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const timeString = now.toLocaleTimeString('tr-TR');
-            const sysPrompt = `${baseSysPrompt}\n\n[SİSTEM BİLGİSİ: Şu anki kesin tarih: ${dateString}, Saat: ${timeString}. Kullanıcı gün, saat, zaman veya tarih sorarsa hiçbir tahminde bulunmadan doğrudan bu sistem bilgisini kullanarak net ve doğru cevap ver.]`;
+    const key = localStorage.getItem('avgax_api_key') || "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";
+    const currentModel = document.getElementById('footer-model').value;
+    const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
+    const temp = parseFloat(document.getElementById('temp-slider').value);
+    
+    const now = new Date();
+    const dateString = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeString = now.toLocaleTimeString('tr-TR');
+    const sysPrompt = `${baseSysPrompt}\n\n[SİSTEM BİLGİSİ: Şu anki kesin tarih: ${dateString}, Saat: ${timeString}. Kullanıcı gün, saat, zaman veya tarih sorarsa hiçbir tahminde bulunmadan doğrudan bu sistem bilgisini kullanarak net ve doğru cevap ver.]`;
 
-            let messages;
-            if(tempImage) {
-                messages = [{ role: "system", content: sysPrompt }, { role: "user", content: [{ type: "text", text: textVal || "Bu görseli açıkla." }, { type: "image_url", image_url: { url: tempImage } }] }];
-            } else {
-                const chat = allChats.find(c => c.id === currentChatId);
-                messages = [{role: "system", content: sysPrompt}].concat(chat.messages);
-        }
+    let messages;
+    if(tempImage) {
+        // Base64 formatını Groq'un kabul edeceği temiz yapıya getirdik
+        const cleanBase64 = tempImage.includes(',') ? tempImage : `data:image/jpeg;base64,${tempImage}`;
+        messages = [
+            { role: "system", content: sysPrompt }, 
+            { role: "user", content: [
+                { type: "text", text: textVal || "Bu görseli açıkla." }, 
+                { type: "image_url", image_url: { url: cleanBase64 } } 
+            ]}
+        ];
+    } else {
+        const chat = allChats.find(c => c.id === currentChatId);
+        messages = [{role: "system", content: sysPrompt}].concat(chat.messages);
+    }
+
+    try {
+        // Tarayıcı engelini aşmak için CORS köprüsü (allorigins) entegre edildi
+        const targetUrl = "https://api.groq.com/openai/v1/chat/completions";
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+        const res = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${key}`
+                },
+                body: JSON.stringify({ 
+                    model: tempImage ? "llama-3.2-11b-vision-preview" : currentModel, 
+                    temperature: temp, 
+                    messages: messages 
+                })
+            })
+        });
+
+        if (!res.ok) throw new Error(`Sunucu yanıt vermedi (Kod: ${res.status})`);
+
+        const proxyData = await res.json();
+        // Allorigins veriyi string olarak sarmaladığı için parse ediyoruz
+        const data = JSON.parse(proxyData.contents); 
         
-            try {
-                const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`},
-                    body: JSON.stringify({ model: tempImage ? "llama-3.2-11b-vision-preview" : currentModel, temperature: temp, messages: messages })
-                });
-                const data = await res.json();
-                document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', data.choices[0].message.content);
-                if(tempImage) clearImage(); 
-            } catch(e) { 
-                document.getElementById('status-msg').classList.add('hidden');
-                appendMessage('ai', "Bağlantı hatası."); 
-            }
+        if (data.error) {
+            throw new Error(data.error.message || "Groq API hatası döndü.");
         }
+
+        document.getElementById('status-msg').classList.add('hidden');
+        appendMessage('ai', data.choices[0].message.content);
+        if(tempImage) clearImage(); 
+    } catch(e) { 
+        document.getElementById('status-msg').classList.add('hidden');
+        console.error("Hata Detayı:", e);
+        // Hatayı ekrana basıyoruz ki mobilde ne ters gidiyor görebilesin
+        appendMessage('ai', `Hata oluştu: ${e.message}. Lütfen API Key'inizi veya internetinizi kontrol edin.`); 
+    }
+}
 
         function renderList() {
             document.getElementById('chat-list').innerHTML = allChats.map(c => `
