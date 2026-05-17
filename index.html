@@ -346,7 +346,7 @@
             if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
                 document.getElementById('admin-panel').style.display = 'flex';
                 document.getElementById('admin-prompt').value = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın. Yapımcın ve sahibin Yasin Emre Doğan (@dgnemre04) 'dır...";
-                document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
+                document.getElementById('admin-key').value = localStorage.getItem('avgax_api_key') || "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";
                 
                 try {
                     const usersSnap = await db.collection('users').get();
@@ -443,7 +443,7 @@
             input.value = '';
             document.getElementById('status-msg').classList.remove('hidden');
 
-            const key = localStorage.getItem('avgax_api_key') || "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";
+            const key = localStorage.getItem('avgax_api_key') || "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";
             const currentModel = document.getElementById('footer-model').value;
             const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
             const temp = parseFloat(document.getElementById('temp-slider').value);
