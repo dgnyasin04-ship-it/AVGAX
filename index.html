@@ -555,7 +555,6 @@
 
     let messages;
     if(tempImage) {
-        // Base64 formatını Groq'un kabul edeceği temiz yapıya getirdik
         const cleanBase64 = tempImage.includes(',') ? tempImage : `data:image/jpeg;base64,${tempImage}`;
         messages = [
             { role: "system", content: sysPrompt }, 
@@ -570,35 +569,36 @@
     }
 
     try {
-        // Tarayıcı engelini aşmak için CORS köprüsü (allorigins) entegre edildi
         const targetUrl = "https://api.groq.com/openai/v1/chat/completions";
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        // Dünyanın en kararlı çalışan CORS köprüsünü entegre ettik
+        const proxyUrl = `https://cors-anywhere.herokuapp.com/${targetUrl}`;
 
         const res = await fetch(proxyUrl, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${key}`
-                },
-                body: JSON.stringify({ 
-                    model: tempImage ? "llama-3.2-11b-vision-preview" : currentModel, 
-                    temperature: temp, 
-                    messages: messages 
-                })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${key}`,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ 
+                model: tempImage ? "llama-3.2-11b-vision-preview" : currentModel, 
+                temperature: temp, 
+                messages: messages 
             })
         });
 
-        if (!res.ok) throw new Error(`Sunucu yanıt vermedi (Kod: ${res.status})`);
+        // Eğer köprü "403 Forbidden" gibi bir hata dönerse yakala
+        if (!res.ok) {
+            if(res.status === 403) {
+                throw new Error("Proxy izni gerekiyor! Lütfen tarayıcıdan cors-anywhere adresine gidip aktifleştirin.");
+            }
+            throw new Error(`Sunucu Hatası: ${res.status}`);
+        }
 
-        const proxyData = await res.json();
-        // Allorigins veriyi string olarak sarmaladığı için parse ediyoruz
-        const data = JSON.parse(proxyData.contents); 
+        const data = await res.json();
         
         if (data.error) {
-            throw new Error(data.error.message || "Groq API hatası döndü.");
+            throw new Error(data.error.message || "Groq sistem hatası.");
         }
 
         document.getElementById('status-msg').classList.add('hidden');
@@ -606,9 +606,8 @@
         if(tempImage) clearImage(); 
     } catch(e) { 
         document.getElementById('status-msg').classList.add('hidden');
-        console.error("Hata Detayı:", e);
-        // Hatayı ekrana basıyoruz ki mobilde ne ters gidiyor görebilesin
-        appendMessage('ai', `Hata oluştu: ${e.message}. Lütfen API Key'inizi veya internetinizi kontrol edin.`); 
+        console.error("Hata:", e);
+        appendMessage('ai', `İşlem Başarısız: ${e.message}`); 
     }
 }
 
