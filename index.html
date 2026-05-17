@@ -16,7 +16,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link rel="manifest" href="manifest.json">
     
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #000; color: white; overflow: hidden; height: 100dvh; display: flex; flex-direction: column; }
@@ -46,7 +45,7 @@
                 <input id="auth-email" type="email" placeholder="E-posta" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                 <div id="register-fields" class="hidden space-y-3">
                     <input id="auth-username" type="text" placeholder="Kullanıcı Adı" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
-                    <input id="auth-phone" type="tel" placeholder="Telefon (İsteğe bağlı)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
+                    <input id="auth-phone" type="tel" placeholder="Telefon No" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                 </div>
                 <input id="auth-pass" type="password" placeholder="Şifre" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-indigo-500">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-indigo-600 p-4 rounded-xl font-bold mt-4 uppercase">Giriş Yap</button>
@@ -56,19 +55,16 @@
     </div>
 
     <div id="main-app" class="hidden flex flex-col h-full">
-        <!-- DM MODAL -->
         <div id="dm-modal">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-indigo-400">MESAJLAR (DM)</h2>
                 <button onclick="toggleDM()" class="text-white bg-slate-800 h-10 w-10 rounded-full">✕</button>
             </div>
             <div class="flex flex-col md:flex-row gap-4 h-full overflow-hidden pb-10">
-                <!-- User List -->
                 <div id="dm-user-list" class="w-full md:w-1/3 bg-slate-900/50 rounded-2xl p-4 overflow-y-auto border border-slate-800">
                     <p class="text-[10px] text-slate-500 mb-4 uppercase font-bold">Kişiler</p>
                     <div id="dm-users-container" class="space-y-2"></div>
                 </div>
-                <!-- Chat Window -->
                 <div id="dm-chat-window" class="hidden w-full md:w-2/3 bg-slate-900/50 rounded-2xl flex flex-col border border-slate-800">
                     <div id="dm-target-header" class="p-4 border-b border-slate-800 font-bold text-indigo-400 text-sm"></div>
                     <div id="dm-messages-container" class="flex-1 overflow-y-auto p-4 flex flex-col"></div>
@@ -79,7 +75,7 @@
                 </div>
             </div>
         </div>
-
+        
         <div id="user-settings-modal">
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-2xl font-bold text-indigo-400">AYARLAR</h2>
@@ -113,7 +109,7 @@
                 </div>
                 <div class="space-y-4">
                     <h3 class="text-sm font-bold text-slate-500 uppercase">Kullanıcı Yönetimi</h3>
-                    <div id="admin-user-list" class="space-y-2 max-h-[400px] overflow-y-auto"></div>
+                    <div id="admin-user-list" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                 </div>
             </div>
         </div>
@@ -126,7 +122,6 @@
             </div>
             <div class="flex items-center gap-2">
                 <button id="admin-btn" onclick="openAdmin()" class="hidden p-3 bg-red-500/10 text-red-500 rounded-xl border border-red-500/20"><i class="fa-solid fa-user-shield"></i></button>
-                <!-- DM BUTTON -->
                 <button onclick="toggleDM()" class="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20"><i class="fa-solid fa-comments"></i></button>
                 <button onclick="toggleUserSettings()" class="p-3 bg-slate-800/50 rounded-xl text-slate-400"><i class="fa-solid fa-sliders"></i></button>
             </div>
@@ -141,7 +136,7 @@
             <div id="chat-list" class="flex-1 overflow-y-auto px-2 space-y-1"></div>
             <div class="p-6 border-t border-slate-800 text-[10px] text-slate-500 text-center uppercase">DEVELOPED BY: <span class="text-indigo-400">@DGNEMRE_04</span></div>
         </div>
-
+        
         <main id="chat-box" class="p-4 md:p-8 space-y-6 chat-container"></main>
 
         <footer class="p-4 bg-slate-900 border-t border-slate-800">
@@ -191,7 +186,6 @@
         let currentChatId = null;
         let selectedImageData = null;
         
-        // DM State
         let selectedDmUserId = null;
         let dmListener = null;
 
@@ -230,7 +224,6 @@
             if (user) {
                 let doc = await db.collection('users').doc(user.uid).get();
                 
-                // DÜZELTME: Eğer döküman yoksa otomatik oluştur
                 if(!doc.exists) {
                     await db.collection('users').doc(user.uid).set({
                         username: user.email.split('@')[0], email: user.email, isAdmin: false, isBanned: false, createdAt: Date.now()
@@ -239,7 +232,33 @@
                 }
 
                 userData = doc.data();
-                if(userData?.isBanned) { alert("Hesabınız engellendi!"); auth.signOut(); return; }
+                
+                // BAN SÜRESİ KONTROLÜ
+                const now = Date.now();
+                let currentlyBanned = userData?.isBanned;
+                
+                if (userData?.banUntil) {
+                    if (userData.banUntil > now) {
+                        currentlyBanned = true;
+                    } else {
+                        // Süre dolmuşsa banı otomatik kaldır
+                        await db.collection('users').doc(user.uid).update({ 
+                            isBanned: false, 
+                            banUntil: firebase.firestore.FieldValue.delete() 
+                        });
+                        currentlyBanned = false;
+                    }
+                }
+                
+                if(currentlyBanned) { 
+                    let msg = "Hesabınız kalıcı olarak engellendi!";
+                    if(userData?.banUntil && userData.banUntil > now) {
+                        msg = `Hesabınız geçici olarak engellendi.\nBan Bitiş: ${new Date(userData.banUntil).toLocaleString('tr-TR')}`;
+                    }
+                    alert(msg); 
+                    auth.signOut(); 
+                    return; 
+                }
                 
                 currentUser = user;
                 document.getElementById('auth-screen').style.display = 'none';
@@ -258,7 +277,7 @@
             }
         });
 
-        // DM LOGIC
+        // DM MANTIGI
         function toggleDM() {
             const m = document.getElementById('dm-modal');
             const isOpening = m.style.display !== 'flex';
@@ -334,7 +353,7 @@
                 reader.readAsDataURL(file);
             }
         }
-
+        
         function clearImage() {
             selectedImageData = null;
             document.getElementById('image-preview-container').classList.add('hidden');
@@ -342,6 +361,7 @@
             document.getElementById('footer-model').value = 'llama-3.3-70b-versatile';
         }
 
+        // ADMIN PANEL MANTIGI GÜNCELLENDİ
         async function openAdmin() {
             if(userData?.isAdmin || currentUser?.email === "dgnyasin04@gmail.com") {
                 document.getElementById('admin-panel').style.display = 'flex';
@@ -352,20 +372,100 @@
                     const usersSnap = await db.collection('users').get();
                     const listDiv = document.getElementById('admin-user-list');
                     listDiv.innerHTML = '';
+                    
                     usersSnap.forEach(doc => {
                         const u = doc.data(); const id = doc.id;
                         if(id === currentUser.uid) return;
+                        
+                        const now = Date.now();
+                        let isCurrentlyBanned = u.isBanned;
+                        let banText = "";
+                        
+                        if (u.banUntil && u.banUntil > now) {
+                            isCurrentlyBanned = true;
+                            const untilDate = new Date(u.banUntil).toLocaleString('tr-TR');
+                            banText = `<p class="text-[10px] text-red-400 font-bold mt-1">Ban Bitiş: ${untilDate}</p>`;
+                        } else if (u.isBanned && !u.banUntil) {
+                            banText = `<p class="text-[10px] text-red-500 font-bold mt-1">Süresiz Banlı</p>`;
+                        }
+
                         const item = document.createElement('div');
-                        item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs mb-2";
-                        item.innerHTML = `<div><p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin?'⭐':''}</p><p class="text-slate-500">${u.email}</p></div><div class="flex gap-2"><button onclick="toggleUserBan('${id}',${u.isBanned})" class="p-2 rounded bg-red-500/10 text-red-500">Ban</button></div>`;
+                        item.className = "bg-slate-900 p-3 rounded-xl border border-slate-800 flex flex-col gap-3 text-xs mb-2";
+                        
+                        let html = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-white">${u.username || 'Adsız'} ${u.isAdmin ? '<span class="text-yellow-400">⭐ ADMIN</span>' : ''}</p>
+                                    <p class="text-slate-500">${u.email}</p>
+                                    ${banText}
+                                </div>
+                            </div>
+                            <div class="flex gap-2 flex-wrap">
+                        `;
+
+                        // Yetki Butonları
+                        if (u.isAdmin) {
+                            html += `<button onclick="toggleAdmin('${id}', false)" class="flex-1 p-2 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20 font-bold">Yetki Al</button>`;
+                        } else {
+                            html += `<button onclick="toggleAdmin('${id}', true)" class="flex-1 p-2 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20 font-bold">Yetki Ver</button>`;
+                        }
+
+                        // Ban Butonları
+                        if (isCurrentlyBanned) {
+                            html += `<button onclick="unbanUser('${id}')" class="flex-1 p-2 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">Banı Aç</button>`;
+                        } else {
+                            html += `<button onclick="banUser('${id}')" class="flex-1 p-2 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 font-bold">Ban At</button>`;
+                        }
+
+                        html += `</div>`;
+                        item.innerHTML = html;
                         listDiv.appendChild(item);
                     });
-                } catch(e) {}
+                } catch(e) { console.error("Kullanıcılar yüklenemedi", e); }
             }
         }
-        
-        async function toggleUserBan(id, cur) { await db.collection('users').doc(id).update({isBanned: !cur}); openAdmin(); }
+                
+        async function banUser(id) {
+            const minStr = prompt("Kullanıcıyı kaç dakika banlamak istiyorsunuz?\n(Süresiz ban için 0 yazın veya boş bırakın)");
+            if (minStr === null) return; // İptal edildi
+
+            let updates = { isBanned: true, banUntil: null };
+            const minutes = parseInt(minStr);
+            
+            if (!isNaN(minutes) && minutes > 0) {
+                updates.banUntil = Date.now() + (minutes * 60 * 1000);
+            }
+
+            try {
+                await db.collection('users').doc(id).update(updates);
+                openAdmin();
+            } catch(e) { alert("Hata: " + e.message); }
+        }
+
+        async function unbanUser(id) {
+            if(confirm("Kullanıcının banını açmak istiyor musunuz?")) {
+                try {
+                    await db.collection('users').doc(id).update({ 
+                        isBanned: false, 
+                        banUntil: firebase.firestore.FieldValue.delete() 
+                    });
+                    openAdmin();
+                } catch(e) { alert("Hata: " + e.message); }
+            }
+        }
+
+        async function toggleAdmin(id, makeAdmin) {
+            const msg = makeAdmin ? "Kullanıcıya admin yetkisi verilecek, emin misiniz?" : "Kullanıcının admin yetkisi alınacak, emin misiniz?";
+            if(confirm(msg)) {
+                try {
+                    await db.collection('users').doc(id).update({ isAdmin: makeAdmin });
+                    openAdmin();
+                } catch(e) { alert("Hata: " + e.message); }
+            }
+        }
+
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+        
         function saveAdminSettings() {
             localStorage.setItem('avgax_system_prompt', document.getElementById('admin-prompt').value);
             localStorage.setItem('avgax_api_key', document.getElementById('admin-key').value);
@@ -430,7 +530,7 @@
             }
         }
 
-                async function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('user-input');
             const textVal = input.value.trim();
             if(!textVal && !selectedImageData) return;
@@ -448,7 +548,6 @@
             const baseSysPrompt = localStorage.getItem('avgax_system_prompt') || "Sen AVGAX ULTRA'sın...";
             const temp = parseFloat(document.getElementById('temp-slider').value);
             
-            // DÜZELTME: Yapay zekaya anlık tarih ve saati dinamik olarak öğretiyoruz
             const now = new Date();
             const dateString = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             const timeString = now.toLocaleTimeString('tr-TR');
@@ -460,8 +559,8 @@
             } else {
                 const chat = allChats.find(c => c.id === currentChatId);
                 messages = [{role: "system", content: sysPrompt}].concat(chat.messages);
-            }
-
+        }
+        
             try {
                 const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
